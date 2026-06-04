@@ -19,32 +19,33 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Patch week and activity stars
+      - name: Patch files
         run: |
           python3 <<'PY'
           from pathlib import Path
-          import re
 
           main_path = Path('src/main.jsx')
+          css_path = Path('src/styles.css')
           main_text = main_path.read_text(encoding='utf-8')
+          css_text = css_path.read_text(encoding='utf-8')
+
+          def replace_once(text, old, new):
+              return text.replace(old, new, 1) if old in text else text
 
           old_week_call = """        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries} rewards={data.rewards} selectedDate={selectedDate} rewardRedemptions={data.rewardRedemptions} transfers={data.transfers} onTogglePrize={togglePrizeRedemption} onTransferBalance={transferBalanceToNextWeek} />}"""
           new_week_call = """        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries.filter((summary) => summary.child.id === selectedChildId)} rewards={data.rewards} selectedDate={selectedDate} rewardRedemptions={data.rewardRedemptions} transfers={data.transfers} onTogglePrize={togglePrizeRedemption} onTransferBalance={transferBalanceToNextWeek} />}"""
-          if old_week_call in main_text:
-              main_text = main_text.replace(old_week_call, new_week_call, 1)
+          main_text = replace_once(main_text, old_week_call, new_week_call)
 
-          if 'className="activity-stars"' not in main_text:
-              old_today_points = """                  <h3>{activity.title}</h3>
+          old_today_points = """                  <h3>{activity.title}</h3>
                   <p>{activity.points} estrela{activity.points > 1 ? 's' : ''}</p>"""
-              new_today_points = """                  <h3 className="mission-heading">
+          new_today_points = """                  <h3 className="mission-heading">
                     <span>{activity.title}</span>
                     <sup className="activity-stars" aria-label={`${activity.points} estrela${activity.points > 1 ? 's' : ''}`}>
                       {Array.from({ length: Math.max(0, Math.min(99, Number(activity.points) || 0)) }, (_, starIndex) => <span key={starIndex}>⭐</span>)}
                     </sup>
                   </h3>"""
-              if old_today_points not in main_text:
-                  raise SystemExit('Trecho da aba Hoje com texto de estrelas nao encontrado.')
-              main_text = main_text.replace(old_today_points, new_today_points, 1)
+          if 'className="activity-stars"' not in main_text:
+              main_text = replace_once(main_text, old_today_points, new_today_points)
 
           old_week_metrics = """              <ProgressBar value={summary.percentage} />
               <div className="big-number">{summary.percentage}%</div>
@@ -61,68 +62,44 @@ jobs:
                 <p className="summary-finance"><strong className="metric-value bad">{nextTransfer}</strong> estrelas semana seguinte</p>
                 <p className="summary-finance balance-line"><strong className="metric-value good">{balance}</strong> estrelas disponíveis</p>
               </div>"""
-          if old_week_metrics in main_text:
-              main_text = main_text.replace(old_week_metrics, new_week_metrics, 1)
-          elif '<div className="big-number">{summary.percentage}%</div>' in main_text:
-              raise SystemExit('Bloco de metricas semanais encontrado em formato inesperado.')
+          if 'className="week-metrics"' not in main_text:
+              main_text = replace_once(main_text, old_week_metrics, new_week_metrics)
 
           old_prize_icon = """                      >
                         <span className="prize-icon">{reward.icon}</span>"""
           new_prize_icon = """                      >
                         {isRedeemed && <span className="redeemed-check" aria-hidden="true">✓</span>}
                         <span className="prize-icon">{reward.icon}</span>"""
-          if 'className="redeemed-check"' not in main_text and old_prize_icon in main_text:
-              main_text = main_text.replace(old_prize_icon, new_prize_icon, 1)
+          if 'className="redeemed-check"' not in main_text:
+              main_text = replace_once(main_text, old_prize_icon, new_prize_icon)
 
           old_acc_icon = """                  >
                     <span className="prize-icon">🪙</span>"""
           new_acc_icon = """                  >
                     {nextTransfer > 0 && <span className="redeemed-check" aria-hidden="true">✓</span>}
                     <span className="prize-icon">🪙</span>"""
-          if '{nextTransfer > 0 && <span className="redeemed-check"' not in main_text and old_acc_icon in main_text:
-              main_text = main_text.replace(old_acc_icon, new_acc_icon, 1)
+          if '{nextTransfer > 0 && <span className="redeemed-check"' not in main_text:
+              main_text = replace_once(main_text, old_acc_icon, new_acc_icon)
 
           main_path.write_text(main_text, encoding='utf-8')
 
-          css_path = Path('src/styles.css')
-          css_text = css_path.read_text(encoding='utf-8')
+          css_add = """
 
-          if '.activity-stars' not in css_text:
-              target = ".mission-title h3 { margin: 0 0 2px; letter-spacing: -0.02em; }\n"
-              addition = target + ".mission-heading { display: inline-flex; align-items: flex-start; gap: 6px; flex-wrap: wrap; margin-right: 4px; }\n.activity-stars { display: inline-flex; gap: 1px; max-width: min(12rem, 42vw); flex-wrap: wrap; transform: translateY(-0.35em); font-size: 0.62em; line-height: 1; letter-spacing: -0.12em; margin-left: 2px; }\n.activity-stars span { display: inline-block; }\n"
-              if target not in css_text:
-                  raise SystemExit('Trecho de CSS da missao nao encontrado.')
-              css_text = css_text.replace(target, addition, 1)
-
-          css_text = css_text.replace(
-              ".summary-grid, .reward-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }",
-              ".summary-grid, .reward-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }\n.summary-grid { grid-template-columns: 1fr; }",
-              1
-          ) if ".summary-grid { grid-template-columns: 1fr; }" not in css_text else css_text
-
-          if '.week-metrics' not in css_text:
-              target = ".summary-points, .reward-tier, .summary-finance { margin-bottom: 0; font-weight: 850; }\n"
-              addition = target + ".week-metrics { display: grid; gap: 5px; margin-top: 12px; }\n.metric-value { font-size: 1.08em; font-weight: 950; }\n.metric-value.good { color: var(--blue); }\n.metric-value.bad { color: var(--red); }\n"
-              if target not in css_text:
-                  raise SystemExit('Trecho de CSS das metricas semanais nao encontrado.')
-              css_text = css_text.replace(target, addition, 1)
-
-          css_text = css_text.replace(
-              ".prize-claim-card { display: grid; gap: 5px; min-height: 118px; padding: 12px; border: 1px solid rgba(124, 58, 237, .18); border-radius: 18px; background: color-mix(in srgb, var(--card) 78%, transparent); text-align: left; transition: transform .15s ease, border-color .15s ease, background .15s ease; }",
-              ".prize-claim-card { position: relative; display: grid; gap: 5px; min-height: 118px; padding: 12px; border: 1px solid rgba(124, 58, 237, .18); border-radius: 18px; background: color-mix(in srgb, var(--card) 78%, transparent); text-align: left; transition: transform .15s ease, border-color .15s ease, background .15s ease; }",
-              1
-          ) if ".prize-claim-card { position: relative;" not in css_text else css_text
-
-          if '.redeemed-check' not in css_text:
-              target = ".prize-claim-card.is-redeemed { background: rgba(34, 197, 94, .14); border-color: rgba(34, 197, 94, .45); }\n"
-              addition = target + ".redeemed-check { position: absolute; top: 9px; right: 9px; display: grid; width: 25px; height: 25px; place-items: center; border-radius: 999px; background: var(--green); color: white; font-size: .95rem; font-weight: 950; box-shadow: 0 8px 18px rgba(34, 197, 94, .28); }\n"
-              if target not in css_text:
-                  raise SystemExit('Trecho de CSS do premio resgatado nao encontrado.')
-              css_text = css_text.replace(target, addition, 1)
-
+/* Ajustes: aba Hoje e aba Semana */
+.mission-heading { display: inline-flex; align-items: flex-start; gap: 6px; flex-wrap: wrap; margin-right: 4px; }
+.activity-stars { display: inline-flex; gap: 1px; max-width: min(12rem, 42vw); flex-wrap: wrap; transform: translateY(-0.35em); font-size: 0.62em; line-height: 1; letter-spacing: -0.12em; margin-left: 2px; }
+.activity-stars span { display: inline-block; }
+.summary-grid { grid-template-columns: 1fr; }
+.week-metrics { display: grid; gap: 5px; margin-top: 12px; }
+.metric-value { font-size: 1.08em; font-weight: 950; }
+.metric-value.good { color: var(--blue); }
+.metric-value.bad { color: var(--red); }
+.prize-claim-card { position: relative; }
+.redeemed-check { position: absolute; top: 9px; right: 9px; display: grid; width: 25px; height: 25px; place-items: center; border-radius: 999px; background: var(--green); color: white; font-size: .95rem; font-weight: 950; box-shadow: 0 8px 18px rgba(34, 197, 94, .28); }
+"""
+          if '.activity-stars' not in css_text or '.week-metrics' not in css_text or '.redeemed-check' not in css_text:
+              css_text = css_text.rstrip() + css_add
           css_path.write_text(css_text, encoding='utf-8')
-
-          Path('.github/workflows/patch-activity-stars.yml').unlink(missing_ok=True)
           PY
 
       - name: Commit patch
@@ -133,6 +110,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/main.jsx src/styles.css .github/workflows/patch-activity-stars.yml
+          git add src/main.jsx src/styles.css
           git commit -m "Ajustar tela Semana e estrelas das atividades"
           git push
