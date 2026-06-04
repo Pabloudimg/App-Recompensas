@@ -53,13 +53,21 @@ function App() {
     setData((current) => {
       const day = current.records[selectedDate] ?? {}
       const childRecords = day[childId] ?? {}
+      const nextChildRecords = { ...childRecords }
+
+      if (status === 'pending') {
+        delete nextChildRecords[activityId]
+      } else {
+        nextChildRecords[activityId] = status
+      }
+
       return {
         ...current,
         records: {
           ...current.records,
           [selectedDate]: {
             ...day,
-            [childId]: { ...childRecords, [activityId]: status }
+            [childId]: nextChildRecords
           }
         }
       }
@@ -73,18 +81,19 @@ function App() {
     })
   }
 
-  function updateChildPhoto(childId, file) {
+  async function updateChildPhoto(childId, file) {
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
+    try {
+      const compressedPhoto = await resizeImageFile(file)
       setData((current) => ({
         ...current,
         children: current.children.map((child) =>
-          child.id === childId ? { ...child, photo: String(reader.result) } : child
+          child.id === childId ? { ...child, photo: compressedPhoto } : child
         )
       }))
+    } catch {
+      alert('Não consegui usar esta imagem. Tente uma foto menor ou em formato JPG/PNG.')
     }
-    reader.readAsDataURL(file)
   }
 
   function removeChildPhoto(childId) {
@@ -104,9 +113,9 @@ function App() {
           {
             id: createId(activity.title),
             title: activity.title,
-            points: Number(activity.points) || 1,
+            points: clampTwoDigit(activity.points, 1),
             icon: activity.icon || '⭐',
-            order: Number(activity.order) || maxOrder + 1,
+            order: clampTwoDigit(activity.order, maxOrder + 1),
             active: true
           }
         ]
@@ -154,7 +163,7 @@ function App() {
       ...current,
       rewards: [
         ...current.rewards,
-        { id: createId(reward.title), title: reward.title, cost: Number(reward.cost) || 10, icon: reward.icon || '🎁' }
+        { id: createId(reward.title), title: reward.title, cost: clampTwoDigit(reward.cost, 10), icon: reward.icon || '🎁' }
       ]
     }))
   }
@@ -218,14 +227,23 @@ function App() {
           {data.children.map((child) => {
             const summary = weeklySummaries.find((item) => item.child.id === child.id)
             return (
-              <button key={child.id} className={`child-card ${selectedChildId === child.id ? 'is-selected' : ''} theme-${child.theme}`} onClick={() => setSelectedChildId(child.id)}>
+              <article
+                key={child.id}
+                className={`child-card ${selectedChildId === child.id ? 'is-selected' : ''} theme-${child.theme}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedChildId(child.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') setSelectedChildId(child.id)
+                }}
+              >
                 <AvatarPicker child={child} onPhotoChange={updateChildPhoto} onRemovePhoto={removeChildPhoto} />
                 <span className="child-name">{child.name}</span>
                 <span className="child-age">{child.age} anos</span>
                 <ProgressBar value={summary.percentage} />
                 <strong>{summary.points} estrelas nesta semana</strong>
                 <small>{summary.percentage}% de conclusão</small>
-              </button>
+              </article>
             )
           })}
         </section>
@@ -263,7 +281,15 @@ function AvatarPicker({ child, onPhotoChange, onRemovePhoto }) {
     <span className="avatar-picker" onClick={(event) => event.stopPropagation()}>
       <label className="avatar" title={`Trocar foto de ${child.name}`}>
         {child.photo ? <img src={child.photo} alt={`Foto de ${child.name}`} /> : child.avatar}
-        <input type="file" accept="image/*" onChange={(event) => onPhotoChange(child.id, event.target.files?.[0])} />
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/*"
+          onClick={(event) => { event.currentTarget.value = '' }}
+          onChange={(event) => {
+            onPhotoChange(child.id, event.target.files?.[0])
+            event.currentTarget.value = ''
+          }}
+        />
       </label>
       <span className="avatar-hint">trocar foto</span>
       {child.photo && <button className="remove-photo" onClick={() => onRemovePhoto(child.id)}>remover</button>}
@@ -272,9 +298,23 @@ function AvatarPicker({ child, onPhotoChange, onRemovePhoto }) {
 }
 
 function TodayPanel({ child, activities, selectedDate, records, notes, onUpdateRecord, onUpdateNote }) {
+  const [feedback, setFeedback] = useState(null)
   const dayRecords = records[selectedDate]?.[child.id] ?? {}
   const note = notes[selectedDate]?.[child.id] ?? ''
   const todaySummary = calculateDaySummary({ activities, dayRecords })
+
+  function handleStatusClick(activityId, currentStatus, nextStatus) {
+    const finalStatus = currentStatus === nextStatus ? 'pending' : nextStatus
+    onUpdateRecord(child.id, activityId, finalStatus)
+
+    if (finalStatus === 'ok' || finalStatus === 'not-ok') {
+      const key = `${activityId}-${Date.now()}`
+      setFeedback({ activityId, status: finalStatus, key })
+      window.setTimeout(() => {
+        setFeedback((current) => current?.key === key ? null : current)
+      }, 820)
+    }
+  }
 
   return (
     <section className="panel entrance-card">
@@ -291,6 +331,11 @@ function TodayPanel({ child, activities, selectedDate, records, notes, onUpdateR
           const currentStatus = dayRecords[activity.id] ?? 'pending'
           return (
             <article key={activity.id} className={`mission-card status-${currentStatus}`}>
+              {feedback?.activityId === activity.id && (
+                <span key={feedback.key} className={`mood-pop ${feedback.status}`}>
+                  {feedback.status === 'ok' ? '😄' : '😢'}
+                </span>
+              )}
               <div className="mission-title">
                 <span>{activity.icon}</span>
                 <div>
@@ -299,9 +344,9 @@ function TodayPanel({ child, activities, selectedDate, records, notes, onUpdateR
                 </div>
               </div>
               <div className="status-buttons" aria-label={`Status de ${activity.title}`}>
-                <button className={currentStatus === 'ok' ? 'ok active' : 'ok'} onClick={() => onUpdateRecord(child.id, activity.id, 'ok')} aria-label="Joinha para cima"><span>👍</span><small>OK</small></button>
-                <button className={currentStatus === 'not-ok' ? 'not-ok active' : 'not-ok'} onClick={() => onUpdateRecord(child.id, activity.id, 'not-ok')} aria-label="Joinha para baixo"><span>👎</span><small>Não OK</small></button>
-                <button className={currentStatus === 'na' ? 'na active' : 'na'} onClick={() => onUpdateRecord(child.id, activity.id, 'na')} aria-label="Neutro"><span>😐</span><small>N/A</small></button>
+                <button className={currentStatus === 'ok' ? 'ok active' : 'ok'} onClick={() => handleStatusClick(activity.id, currentStatus, 'ok')} aria-label="Joinha para cima"><span>👍</span><small>OK</small></button>
+                <button className={currentStatus === 'not-ok' ? 'not-ok active' : 'not-ok'} onClick={() => handleStatusClick(activity.id, currentStatus, 'not-ok')} aria-label="Joinha para baixo"><span>👎</span><small>Não OK</small></button>
+                <button className={currentStatus === 'na' ? 'na active' : 'na'} onClick={() => handleStatusClick(activity.id, currentStatus, 'na')} aria-label="Neutro"><span>😐</span><small>N/A</small></button>
               </div>
             </article>
           )
@@ -323,7 +368,7 @@ function WeekPanel({ summaries, rewards, selectedDate }) {
       <div className="summary-grid">
         {summaries.map((summary) => (
           <article key={summary.child.id} className={`summary-card theme-${summary.child.theme}`}>
-            <div className="summary-topline"><span className="avatar mini-avatar">{summary.child.photo ? <img src={summary.child.photo} alt="" /> : summary.child.avatar}</span><div><h3>{summary.child.name}</h3><p>{summary.completed} OK de {summary.applicable} marcações aplicáveis</p></div></div>
+            <div className="summary-topline"><span className="avatar mini-avatar">{summary.child.photo ? <img src={summary.child.photo} alt="" /> : summary.child.avatar}</span><div><h3>{summary.child.name}</h3><p>{summary.completed} <span className="inline-status-icon">👍</span> de {summary.applicable} marcações aplicáveis</p></div></div>
             <ProgressBar value={summary.percentage} />
             <div className="big-number">{summary.percentage}%</div>
             <p className="summary-points">⭐ {summary.points} estrelas acumuladas</p>
@@ -338,36 +383,36 @@ function WeekPanel({ summaries, rewards, selectedDate }) {
 }
 
 function ActivitiesPanel({ activities, onAddActivity, onUpdateActivity, onRemoveActivity, onMoveActivity }) {
-  const nextOrder = Math.max(0, ...activities.map((activity, index) => Number(activity.order ?? index + 1))) + 1
-  const [form, setForm] = useState({ title: '', points: 1, icon: '⭐', order: nextOrder })
+  const nextOrder = Math.min(99, Math.max(0, ...activities.map((activity, index) => Number(activity.order ?? index + 1))) + 1)
+  const [form, setForm] = useState({ title: '', points: '1', icon: '⭐', order: String(nextOrder) })
 
-  useEffect(() => setForm((current) => current.title ? current : { ...current, order: nextOrder }), [nextOrder])
+  useEffect(() => setForm((current) => current.title ? current : { ...current, order: String(nextOrder) }), [nextOrder])
 
   function submit(event) {
     event.preventDefault()
     if (!form.title.trim()) return
     onAddActivity(form)
-    setForm({ title: '', points: 1, icon: '⭐', order: nextOrder + 1 })
+    setForm({ title: '', points: '1', icon: '⭐', order: String(Math.min(99, nextOrder + 1)) })
   }
 
   return (
     <section className="panel entrance-card">
       <div className="panel-header"><div><p className="eyebrow">Configuração</p><h2>Atividades</h2><p className="muted-text">Use a posição ou as setas para definir a ordem exibida na visão diária.</p></div></div>
       <form className="inline-form activities-form" onSubmit={submit}>
-        <input value={form.icon} onChange={(event) => setForm({ ...form, icon: event.target.value })} aria-label="Ícone" />
-        <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Nova atividade" />
-        <input type="number" min="1" value={form.points} onChange={(event) => setForm({ ...form, points: event.target.value })} aria-label="Pontos" />
-        <input type="number" min="1" value={form.order} onChange={(event) => setForm({ ...form, order: event.target.value })} aria-label="Posição" title="Posição" />
+        <label className="field small-field"><span>Ícone</span><input value={form.icon} maxLength={2} onChange={(event) => setForm({ ...form, icon: event.target.value })} aria-label="Ícone" /></label>
+        <label className="field"><span>Descrição</span><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Nova atividade" /></label>
+        <label className="field numeric-field"><span>Estrelas</span><input inputMode="numeric" maxLength={2} value={form.points} onChange={(event) => setForm({ ...form, points: sanitizeTwoDigitInput(event.target.value) })} aria-label="Estrelas" /></label>
+        <label className="field numeric-field"><span>Ordem</span><input inputMode="numeric" maxLength={2} value={form.order} onChange={(event) => setForm({ ...form, order: sanitizeTwoDigitInput(event.target.value) })} aria-label="Ordem" /></label>
         <button type="submit">Adicionar</button>
       </form>
       <div className="settings-list activities-settings">
         {activities.map((activity, index) => (
           <article key={activity.id} className={!activity.active ? 'muted-row' : ''}>
             <div className="order-buttons"><button onClick={() => onMoveActivity(activity.id, 'up')} disabled={index === 0}>↑</button><button onClick={() => onMoveActivity(activity.id, 'down')} disabled={index === activities.length - 1}>↓</button></div>
-            <input value={activity.icon} onChange={(event) => onUpdateActivity(activity.id, { icon: event.target.value })} aria-label="Ícone" />
-            <input value={activity.title} onChange={(event) => onUpdateActivity(activity.id, { title: event.target.value })} aria-label="Atividade" />
-            <input type="number" min="1" value={activity.points} onChange={(event) => onUpdateActivity(activity.id, { points: Number(event.target.value) })} aria-label="Pontos" />
-            <input type="number" min="1" value={activity.order ?? index + 1} onChange={(event) => onUpdateActivity(activity.id, { order: Number(event.target.value) })} aria-label="Posição" />
+            <label className="field small-field"><span>Ícone</span><input value={activity.icon} maxLength={2} onChange={(event) => onUpdateActivity(activity.id, { icon: event.target.value })} aria-label="Ícone" /></label>
+            <label className="field"><span>Descrição</span><input value={activity.title} onChange={(event) => onUpdateActivity(activity.id, { title: event.target.value })} aria-label="Atividade" /></label>
+            <label className="field numeric-field"><span>Estrelas</span><input inputMode="numeric" maxLength={2} value={String(activity.points ?? 0)} onChange={(event) => onUpdateActivity(activity.id, { points: clampTwoDigit(event.target.value, 0) })} aria-label="Estrelas" /></label>
+            <label className="field numeric-field"><span>Ordem</span><input inputMode="numeric" maxLength={2} value={String(activity.order ?? index + 1)} onChange={(event) => onUpdateActivity(activity.id, { order: clampTwoDigit(event.target.value, 0) })} aria-label="Ordem" /></label>
             <label className="toggle-label"><input type="checkbox" checked={activity.active} onChange={(event) => onUpdateActivity(activity.id, { active: event.target.checked })} />Ativa</label>
             <button className="ghost danger" onClick={() => onRemoveActivity(activity.id)}>Remover</button>
           </article>
@@ -378,17 +423,27 @@ function ActivitiesPanel({ activities, onAddActivity, onUpdateActivity, onRemove
 }
 
 function RewardsPanel({ rewards, onAddReward, onUpdateReward, onRemoveReward }) {
-  const [form, setForm] = useState({ title: '', cost: 10, icon: '🎁' })
+  const [form, setForm] = useState({ title: '', cost: '10', icon: '🎁' })
   function submit(event) {
     event.preventDefault()
     if (!form.title.trim()) return
     onAddReward(form)
-    setForm({ title: '', cost: 10, icon: '🎁' })
+    setForm({ title: '', cost: '10', icon: '🎁' })
   }
   return (
     <section className="panel entrance-card"><div className="panel-header"><div><p className="eyebrow">Configuração</p><h2>Recompensas</h2></div></div>
-      <form className="inline-form" onSubmit={submit}><input value={form.icon} onChange={(event) => setForm({ ...form, icon: event.target.value })} aria-label="Ícone" /><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Nova recompensa" /><input type="number" min="1" value={form.cost} onChange={(event) => setForm({ ...form, cost: event.target.value })} aria-label="Custo" /><button type="submit">Adicionar</button></form>
-      <div className="settings-list rewards-settings">{rewards.map((reward) => <article key={reward.id}><input value={reward.icon} onChange={(event) => onUpdateReward(reward.id, { icon: event.target.value })} aria-label="Ícone" /><input value={reward.title} onChange={(event) => onUpdateReward(reward.id, { title: event.target.value })} aria-label="Recompensa" /><input type="number" min="1" value={reward.cost} onChange={(event) => onUpdateReward(reward.id, { cost: Number(event.target.value) })} aria-label="Custo" /><button className="ghost danger" onClick={() => onRemoveReward(reward.id)}>Remover</button></article>)}</div>
+      <form className="inline-form rewards-form" onSubmit={submit}>
+        <label className="field small-field"><span>Ícone</span><input value={form.icon} maxLength={2} onChange={(event) => setForm({ ...form, icon: event.target.value })} aria-label="Ícone" /></label>
+        <label className="field"><span>Prêmio</span><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Nova recompensa" /></label>
+        <label className="field numeric-field"><span>Estrelas</span><input inputMode="numeric" maxLength={2} value={form.cost} onChange={(event) => setForm({ ...form, cost: sanitizeTwoDigitInput(event.target.value) })} aria-label="Estrelas" /></label>
+        <button type="submit">Adicionar</button>
+      </form>
+      <div className="settings-list rewards-settings">{rewards.map((reward) => <article key={reward.id}>
+        <label className="field small-field"><span>Ícone</span><input value={reward.icon} maxLength={2} onChange={(event) => onUpdateReward(reward.id, { icon: event.target.value })} aria-label="Ícone" /></label>
+        <label className="field"><span>Prêmio</span><input value={reward.title} onChange={(event) => onUpdateReward(reward.id, { title: event.target.value })} aria-label="Recompensa" /></label>
+        <label className="field numeric-field"><span>Estrelas</span><input inputMode="numeric" maxLength={2} value={String(reward.cost ?? 0)} onChange={(event) => onUpdateReward(reward.id, { cost: clampTwoDigit(event.target.value, 0) })} aria-label="Estrelas" /></label>
+        <button className="ghost danger" onClick={() => onRemoveReward(reward.id)}>Remover</button>
+      </article>)}</div>
     </section>
   )
 }
@@ -414,7 +469,13 @@ function usePersistentState(key, initialValue) {
       return stored ? normalizeData({ ...initialValue, ...JSON.parse(stored) }) : initialValue
     } catch { return initialValue }
   })
-  useEffect(() => { localStorage.setItem(key, JSON.stringify(state)) }, [key, state])
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(state))
+    } catch (error) {
+      console.error('Não foi possível salvar os dados no navegador.', error)
+    }
+  }, [key, state])
   return [state, setState]
 }
 
@@ -423,7 +484,8 @@ function normalizeData(data) {
     ...defaultData,
     ...data,
     children: (data.children ?? defaultData.children).map((child) => ({ photo: '', ...child })),
-    activities: (data.activities ?? defaultData.activities).map((activity, index) => ({ ...activity, order: Number(activity.order ?? index + 1) }))
+    activities: (data.activities ?? defaultData.activities).map((activity, index) => ({ ...activity, points: clampTwoDigit(activity.points, 1), order: clampTwoDigit(activity.order, index + 1) })),
+    rewards: (data.rewards ?? defaultData.rewards).map((reward) => ({ ...reward, cost: clampTwoDigit(reward.cost, 10) }))
   }
 }
 
@@ -472,6 +534,41 @@ function getTierMessage(percentage) {
   if (percentage >= 75) return '🥈 Prêmio Prata: muito bom!'
   if (percentage >= 60) return '🥉 Prêmio Bronze: bom avanço!'
   return '💬 Semana para conversar, ajustar e tentar de novo.'
+}
+
+function sanitizeTwoDigitInput(value) {
+  return String(value ?? '').replace(/\D/g, '').slice(0, 2)
+}
+
+function clampTwoDigit(value, fallback = 0) {
+  const sanitized = sanitizeTwoDigitInput(value)
+  if (sanitized === '') return Math.min(99, Math.max(0, Number(fallback) || 0))
+  return Math.min(99, Math.max(0, Number(sanitized)))
+}
+
+function resizeImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = reject
+    reader.onload = () => {
+      const source = String(reader.result)
+      const image = new Image()
+      image.onload = () => {
+        const maxSize = 520
+        const ratio = Math.min(1, maxSize / Math.max(image.width, image.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round(image.width * ratio))
+        canvas.height = Math.max(1, Math.round(image.height * ratio))
+        const context = canvas.getContext('2d')
+        if (!context) return reject(new Error('Canvas indisponível'))
+        context.drawImage(image, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+      image.onerror = reject
+      image.src = source
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 function formatDate(date) {
