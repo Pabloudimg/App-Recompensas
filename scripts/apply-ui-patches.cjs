@@ -80,7 +80,7 @@ const childProfileFunctions = [
   "    const name = String(child.name ?? '').trim()",
   '    if (!name) return',
   '    const id = createId(name)',
-  '    const birthDate = child.birthDate || \'\'',
+  "    const birthDate = child.birthDate || ''",
   '    setData((current) => ({',
   '      ...current,',
   '      children: [',
@@ -122,27 +122,20 @@ const oldWeekCall = "        {activeTab === 'week' && <WeekPanel summaries={week
 const newWeekCall = "        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries.filter((summary) => summary.child.id === selectedChildId)} rewards={data.rewards} selectedDate={selectedDate} rewardRedemptions={data.rewardRedemptions} transfers={data.transfers} onTogglePrize={togglePrizeRedemption} onTransferBalance={transferBalanceToNextWeek} />}"
 mainText = replaceOnce(mainText, oldWeekCall, newWeekCall)
 
-const oldChildAge = '                <span className="child-age">{child.age} anos</span>'
-const newChildAge = '                <span className="child-age">{getChildAgeLabel(child)}</span>'
-mainText = replaceOnce(mainText, oldChildAge, newChildAge)
+mainText = replaceOnce(mainText, '                <span className="child-age">{child.age} anos</span>', '                <span className="child-age">{getChildAgeLabel(child)}</span>')
 
 const oldNavChildren = "          <button className={activeTab === 'rewards' ? 'active' : ''} onClick={() => setActiveTab('rewards')}>Prêmios</button>\n          <button className={activeTab === 'data' ? 'active' : ''} onClick={() => setActiveTab('data')}>Dados</button>"
 const newNavChildren = "          <button className={activeTab === 'rewards' ? 'active' : ''} onClick={() => setActiveTab('rewards')}>Prêmios</button>\n          <button className={activeTab === 'children' ? 'active' : ''} onClick={() => setActiveTab('children')}>Crianças</button>\n          <button className={activeTab === 'data' ? 'active' : ''} onClick={() => setActiveTab('data')}>Dados</button>"
-if (!mainText.includes("setActiveTab('children')")) {
-  mainText = replaceOnce(mainText, oldNavChildren, newNavChildren)
-}
+if (!mainText.includes("setActiveTab('children')")) mainText = replaceOnce(mainText, oldNavChildren, newNavChildren)
 
 const oldPanelChildren = "        {activeTab === 'rewards' && <RewardsPanel rewards={data.rewards} onAddReward={addReward} onUpdateReward={updateReward} onRemoveReward={removeReward} />}\n        {activeTab === 'data' && <DataPanel data={data} onImportData={importData} onResetData={resetData} />}"
 const newPanelChildren = "        {activeTab === 'rewards' && <RewardsPanel rewards={data.rewards} onAddReward={addReward} onUpdateReward={updateReward} onRemoveReward={removeReward} />}\n        {activeTab === 'children' && <ChildrenPanel children={data.children} selectedChildId={selectedChildId} onSelectChild={setSelectedChildId} onAddChild={addChildProfile} onUpdateChild={updateChildProfile} onRemoveChild={removeChildProfile} onPhotoChange={updateChildPhoto} onRemovePhoto={removeChildPhoto} />}\n        {activeTab === 'data' && <DataPanel data={data} onImportData={importData} onResetData={resetData} />}"
-if (!mainText.includes('<ChildrenPanel')) {
-  mainText = replaceOnce(mainText, oldPanelChildren, newPanelChildren)
-}
+if (!mainText.includes('<ChildrenPanel')) mainText = replaceOnce(mainText, oldPanelChildren, newPanelChildren)
 
 const oldTodayPoints = [
   '                  <h3>{activity.title}</h3>',
   "                  <p>{activity.points} estrela{activity.points > 1 ? 's' : ''}</p>"
 ].join('\n')
-
 const newTodayPoints = [
   '                  <h3 className="mission-heading">',
   '                    <span>{activity.title}</span>',
@@ -151,10 +144,7 @@ const newTodayPoints = [
   '                    </sup>',
   '                  </h3>'
 ].join('\n')
-
-if (!mainText.includes('className="activity-stars"')) {
-  mainText = replaceOnce(mainText, oldTodayPoints, newTodayPoints)
-}
+if (!mainText.includes('className="activity-stars"')) mainText = replaceOnce(mainText, oldTodayPoints, newTodayPoints)
 
 const oldWeekMetrics = [
   '              <ProgressBar value={summary.percentage} />',
@@ -165,7 +155,6 @@ const oldWeekMetrics = [
   '              <p className="summary-finance balance-line">🧾 {balance} moedas disponíveis</p>',
   '              <p className="reward-tier">{getTierMessage(summary.percentage)}</p>'
 ].join('\n')
-
 const newWeekMetrics = [
   '              <ProgressBar value={summary.percentage} />',
   '              <div className="week-metrics">',
@@ -175,7 +164,6 @@ const newWeekMetrics = [
   '                <p className="summary-finance balance-line">🧾 <strong className="metric-value good">{Math.max(0, balance - nextTransfer)}</strong> estrelas disponíveis</p>',
   '              </div>'
 ].join('\n')
-
 if (!mainText.includes('className="week-metrics"')) {
   mainText = replaceOnce(mainText, oldWeekMetrics, newWeekMetrics)
 } else {
@@ -183,20 +171,9 @@ if (!mainText.includes('className="week-metrics"')) {
   mainText = mainText.replace('{balance}</strong> estrelas disponíveis', '{Math.max(0, balance - nextTransfer)}</strong> estrelas disponíveis')
 }
 
-const oldPrizeIcon = [
-  '                      >',
-  '                        <span className="prize-icon">{reward.icon}</span>'
-].join('\n')
-
-const newPrizeIcon = [
-  '                      >',
-  '                        {isRedeemed && <span className="redeemed-check" aria-hidden="true">✓</span>}',
-  '                        <span className="prize-icon">{reward.icon}</span>'
-].join('\n')
-
-if (!mainText.includes('className="redeemed-check"')) {
-  mainText = replaceOnce(mainText, oldPrizeIcon, newPrizeIcon)
-}
+const oldPrizeIcon = ['                      >', '                        <span className="prize-icon">{reward.icon}</span>'].join('\n')
+const newPrizeIcon = ['                      >', '                        {isRedeemed && <span className="redeemed-check" aria-hidden="true">✓</span>}', '                        <span className="prize-icon">{reward.icon}</span>'].join('\n')
+if (!mainText.includes('className="redeemed-check"')) mainText = replaceOnce(mainText, oldPrizeIcon, newPrizeIcon)
 
 const oldAccumulate = [
   '                  <button',
@@ -210,7 +187,6 @@ const oldAccumulate = [
   "                    <em>{nextTransfer > 0 ? `${nextTransfer} para próxima semana` : balance > 0 ? `${balance} disponíveis` : 'Sem saldo'}</em>",
   '                  </button>'
 ].join('\n')
-
 const newAccumulate = [
   '                  <button',
   '                    className={`prize-claim-card accumulate-card ${nextTransfer > 0 ? \'is-redeemed\' : \'\'}`}',
@@ -221,89 +197,83 @@ const newAccumulate = [
   '                    <span className="prize-icon">🪙</span>',
   '                    <strong>Acumular moedas</strong>',
   '                    <small>Transferir saldo</small>',
-  "                    <em>{nextTransfer > 0 ? `${nextTransfer} para próxima semana` : balance > 0 ? `${balance} disponíveis` : 'Sem saldo'}</em>",
+  "                    <em>{nextTransfer > 0 ? nextTransfer + ' para próxima semana' : balance > 0 ? balance + ' disponíveis' : 'Sem saldo'}</em>",
   '                  </button>'
 ].join('\n')
 mainText = replaceOnce(mainText, oldAccumulate, newAccumulate)
 
-const childrenPanel = `
-function ChildrenPanel({ children, selectedChildId, onSelectChild, onAddChild, onUpdateChild, onRemoveChild, onPhotoChange, onRemovePhoto }) {
-  const [form, setForm] = useState({ name: '', birthDate: '', avatar: '🙂', theme: 'blue' })
-
-  function submit(event) {
-    event.preventDefault()
-    if (!form.name.trim()) return
-    onAddChild(form)
-    setForm({ name: '', birthDate: '', avatar: '🙂', theme: 'blue' })
-  }
-
-  return (
-    <section className="panel entrance-card">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Cadastro</p>
-          <h2>Crianças</h2>
-          <p className="muted-text">Cadastre nome, data de nascimento e foto. A idade passa a ser calculada automaticamente.</p>
-        </div>
-      </div>
-
-      <form className="inline-form children-form" onSubmit={submit}>
-        <label className="field"><span>Nome</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Nome da criança" /></label>
-        <label className="field"><span>Nascimento</span><input type="date" value={form.birthDate} onChange={(event) => setForm({ ...form, birthDate: event.target.value })} /></label>
-        <label className="field small-field"><span>Ícone</span><input value={form.avatar} maxLength={2} onChange={(event) => setForm({ ...form, avatar: event.target.value })} /></label>
-        <label className="field"><span>Tema</span><select value={form.theme} onChange={(event) => setForm({ ...form, theme: event.target.value })}><option value="purple">Roxo</option><option value="blue">Azul</option></select></label>
-        <button type="submit">Adicionar</button>
-      </form>
-
-      <div className="settings-list children-settings">
-        {children.map((child) => (
-          <article key={child.id} className={'child-admin-card theme-' + child.theme}>
-            <div className="child-photo-tools">
-              <span className="avatar child-admin-avatar">{child.photo ? <img src={child.photo} alt={child.name} /> : child.avatar}</span>
-              <label className="file-button compact-file">Foto<input type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/*" onChange={(event) => { onPhotoChange(child.id, event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
-              {child.photo && <button className="ghost compact-ghost" onClick={() => onRemovePhoto(child.id)}>Remover foto</button>}
-            </div>
-            <label className="field"><span>Nome</span><input value={child.name} onChange={(event) => onUpdateChild(child.id, { name: event.target.value })} /></label>
-            <label className="field"><span>Nascimento</span><input type="date" value={child.birthDate ?? ''} onChange={(event) => onUpdateChild(child.id, { birthDate: event.target.value })} /></label>
-            <label className="field small-field"><span>Ícone</span><input value={child.avatar} maxLength={2} onChange={(event) => onUpdateChild(child.id, { avatar: event.target.value })} /></label>
-            <label className="field"><span>Tema</span><select value={child.theme ?? 'blue'} onChange={(event) => onUpdateChild(child.id, { theme: event.target.value })}><option value="purple">Roxo</option><option value="blue">Azul</option></select></label>
-            <div className="child-age-display"><span>Idade</span><strong>{getChildAgeLabel(child)}</strong></div>
-            <button className={selectedChildId === child.id ? 'ghost active-selection' : 'ghost'} onClick={() => onSelectChild(child.id)}>{selectedChildId === child.id ? 'Selecionada' : 'Selecionar'}</button>
-            <button className="ghost danger" onClick={() => onRemoveChild(child.id)}>Remover</button>
-          </article>
-        ))}
-      </div>
-    </section>
-  )
-}
-`
+const childrenPanel = [
+  '',
+  'function ChildrenPanel({ children, selectedChildId, onSelectChild, onAddChild, onUpdateChild, onRemoveChild, onPhotoChange, onRemovePhoto }) {',
+  "  const [form, setForm] = useState({ name: '', birthDate: '', avatar: '🙂', theme: 'blue' })",
+  '',
+  '  function submit(event) {',
+  '    event.preventDefault()',
+  '    if (!form.name.trim()) return',
+  '    onAddChild(form)',
+  "    setForm({ name: '', birthDate: '', avatar: '🙂', theme: 'blue' })",
+  '  }',
+  '',
+  '  return (',
+  '    <section className="panel entrance-card">',
+  '      <div className="panel-header"><div><p className="eyebrow">Cadastro</p><h2>Crianças</h2><p className="muted-text">Cadastre nome, data de nascimento e foto. A idade passa a ser calculada automaticamente.</p></div></div>',
+  '      <form className="inline-form children-form" onSubmit={submit}>',
+  '        <label className="field"><span>Nome</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Nome da criança" /></label>',
+  '        <label className="field"><span>Nascimento</span><input type="date" value={form.birthDate} onChange={(event) => setForm({ ...form, birthDate: event.target.value })} /></label>',
+  '        <label className="field small-field"><span>Ícone</span><input value={form.avatar} maxLength={2} onChange={(event) => setForm({ ...form, avatar: event.target.value })} /></label>',
+  '        <label className="field"><span>Tema</span><select value={form.theme} onChange={(event) => setForm({ ...form, theme: event.target.value })}><option value="purple">Roxo</option><option value="blue">Azul</option></select></label>',
+  '        <button type="submit">Adicionar</button>',
+  '      </form>',
+  '      <div className="settings-list children-settings">',
+  '        {children.map((child) => (',
+  "          <article key={child.id} className={'child-admin-card theme-' + child.theme}>",
+  '            <div className="child-photo-tools">',
+  '              <span className="avatar child-admin-avatar">{child.photo ? <img src={child.photo} alt={child.name} /> : child.avatar}</span>',
+  "              <label className=\"file-button compact-file\">Foto<input type=\"file\" accept=\"image/png,image/jpeg,image/webp,image/heic,image/heif,image/*\" onChange={(event) => { onPhotoChange(child.id, event.target.files?.[0]); event.currentTarget.value = '' }} /></label>",
+  '              {child.photo && <button className="ghost compact-ghost" onClick={() => onRemovePhoto(child.id)}>Remover foto</button>}',
+  '            </div>',
+  '            <label className="field"><span>Nome</span><input value={child.name} onChange={(event) => onUpdateChild(child.id, { name: event.target.value })} /></label>',
+  "            <label className=\"field\"><span>Nascimento</span><input type=\"date\" value={child.birthDate ?? ''} onChange={(event) => onUpdateChild(child.id, { birthDate: event.target.value })} /></label>",
+  '            <label className="field small-field"><span>Ícone</span><input value={child.avatar} maxLength={2} onChange={(event) => onUpdateChild(child.id, { avatar: event.target.value })} /></label>',
+  "            <label className=\"field\"><span>Tema</span><select value={child.theme ?? 'blue'} onChange={(event) => onUpdateChild(child.id, { theme: event.target.value })}><option value=\"purple\">Roxo</option><option value=\"blue\">Azul</option></select></label>",
+  '            <div className="child-age-display"><span>Idade</span><strong>{getChildAgeLabel(child)}</strong></div>',
+  "            <button className={selectedChildId === child.id ? 'ghost active-selection' : 'ghost'} onClick={() => onSelectChild(child.id)}>{selectedChildId === child.id ? 'Selecionada' : 'Selecionar'}</button>",
+  '            <button className="ghost danger" onClick={() => onRemoveChild(child.id)}>Remover</button>',
+  '          </article>',
+  '        ))}',
+  '      </div>',
+  '    </section>',
+  '  )',
+  '}',
+  ''
+].join('\n')
 if (!mainText.includes('function ChildrenPanel')) {
-  mainText = mainText.replace('function DataPanel({ data, onImportData, onResetData }) {', `${childrenPanel}\nfunction DataPanel({ data, onImportData, onResetData }) {`)
+  mainText = mainText.replace('function DataPanel({ data, onImportData, onResetData }) {', childrenPanel + '\nfunction DataPanel({ data, onImportData, onResetData }) {')
 }
 
-const oldNormalizeChildren = "    children: (data.children ?? defaultData.children).map((child) => ({ photo: '', ...child })),"
-const newNormalizeChildren = "    children: (data.children ?? defaultData.children).map((child) => ({ birthDate: '', photo: '', ...child })),"
-mainText = replaceOnce(mainText, oldNormalizeChildren, newNormalizeChildren)
+mainText = replaceOnce(mainText, "    children: (data.children ?? defaultData.children).map((child) => ({ photo: '', ...child })),", "    children: (data.children ?? defaultData.children).map((child) => ({ birthDate: '', photo: '', ...child })),")
 
-const ageHelpers = `
-function calculateAge(birthDate, fallbackAge = 0) {
-  if (!birthDate) return Number(fallbackAge) || 0
-  const birth = parseLocalDate(birthDate)
-  if (Number.isNaN(birth.getTime())) return Number(fallbackAge) || 0
-  const today = new Date()
-  let age = today.getFullYear() - birth.getFullYear()
-  const hadBirthdayThisYear = today.getMonth() > birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate())
-  if (!hadBirthdayThisYear) age -= 1
-  return Math.max(0, age)
-}
-
-function getChildAgeLabel(child) {
-  const age = calculateAge(child.birthDate, child.age)
-  return age === 1 ? '1 ano' : `${age} anos`
-}
-`
+const ageHelpers = [
+  '',
+  'function calculateAge(birthDate, fallbackAge = 0) {',
+  '  if (!birthDate) return Number(fallbackAge) || 0',
+  '  const birth = parseLocalDate(birthDate)',
+  '  if (Number.isNaN(birth.getTime())) return Number(fallbackAge) || 0',
+  '  const today = new Date()',
+  '  let age = today.getFullYear() - birth.getFullYear()',
+  '  const hadBirthdayThisYear = today.getMonth() > birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate())',
+  '  if (!hadBirthdayThisYear) age -= 1',
+  '  return Math.max(0, age)',
+  '}',
+  '',
+  'function getChildAgeLabel(child) {',
+  '  const age = calculateAge(child.birthDate, child.age)',
+  "  return age === 1 ? '1 ano' : String(age) + ' anos'",
+  '}',
+  ''
+].join('\n')
 if (!mainText.includes('function calculateAge')) {
-  mainText = mainText.replace('function createId(value) {', `${ageHelpers}\nfunction createId(value) {`)
+  mainText = mainText.replace('function createId(value) {', ageHelpers + '\nfunction createId(value) {')
 }
 
 fs.writeFileSync(mainPath, mainText, 'utf8')
@@ -322,7 +292,6 @@ const cssAdd = `
 .prize-claim-card { position: relative; }
 .redeemed-check { position: absolute; top: 9px; right: 9px; display: grid; width: 25px; height: 25px; place-items: center; border-radius: 999px; background: var(--green); color: white; font-size: .95rem; font-weight: 950; box-shadow: 0 8px 18px rgba(34, 197, 94, .28); }
 `
-
 if (!cssText.includes('.activity-stars') || !cssText.includes('.week-metrics') || !cssText.includes('.redeemed-check')) {
   cssText = cssText.trimEnd() + cssAdd
 }
