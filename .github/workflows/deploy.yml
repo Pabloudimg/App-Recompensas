@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Apply UI patches
+        run: node scripts/apply-ui-patches.cjs
+
       - name: Confirm Vite installed
         run: npx vite --version
 
