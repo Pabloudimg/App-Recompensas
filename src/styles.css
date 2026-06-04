@@ -198,10 +198,24 @@ h2 { margin-bottom: 0; font-size: clamp(1.45rem, 3.2vw, 2.3rem); letter-spacing:
 .summary-topline h3 { margin: 0; font-size: 1.5rem; }
 .summary-topline p { margin: 2px 0 0; }
 .big-number { margin: 12px 0 6px; font-size: clamp(2.6rem, 8vw, 4.25rem); font-weight: 950; line-height: 0.9; letter-spacing: -0.08em; }
-.summary-points, .reward-tier { margin-bottom: 0; font-weight: 850; }
+.summary-points, .reward-tier, .summary-finance { margin-bottom: 0; font-weight: 850; }
+.summary-finance { margin-top: 6px; color: var(--ink-muted); }
+.balance-line { color: var(--ink); font-size: 1.05rem; }
 .section-title { margin: 28px 0 14px; font-size: 1.2rem; }
 .reward-card { display: grid; gap: 8px; background: color-mix(in srgb, var(--card) 74%, transparent); }
 .reward-card span { font-size: 2rem; }
+.weekly-prizes { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.weekly-prizes h4 { margin: 0 0 12px; font-size: 1rem; }
+.prize-claim-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.prize-claim-card { display: grid; gap: 5px; min-height: 118px; padding: 12px; border: 1px solid rgba(124, 58, 237, .18); border-radius: 18px; background: color-mix(in srgb, var(--card) 78%, transparent); text-align: left; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+.prize-claim-card:hover:not(:disabled) { transform: translateY(-2px); border-color: rgba(124, 58, 237, .4); }
+.prize-claim-card:disabled { opacity: .48; cursor: not-allowed; }
+.prize-claim-card .prize-icon { font-size: 1.7rem; }
+.prize-claim-card strong { line-height: 1.15; }
+.prize-claim-card small { color: var(--ink-muted); font-weight: 850; }
+.prize-claim-card em { align-self: end; color: var(--purple); font-style: normal; font-weight: 950; font-size: .78rem; }
+.prize-claim-card.is-redeemed { background: rgba(34, 197, 94, .14); border-color: rgba(34, 197, 94, .45); }
+.accumulate-card { border-style: dashed; }
 .inline-form, .settings-list article, .data-actions { display: grid; gap: 10px; }
 .inline-form { grid-template-columns: 72px minmax(180px, 1fr) 100px 150px; margin-bottom: 18px; }
 .activities-form { grid-template-columns: 76px minmax(180px, 1fr) 94px 94px 150px; align-items: end; }
@@ -274,4 +288,6 @@ h2 { margin-bottom: 0; font-size: clamp(1.45rem, 3.2vw, 2.3rem); letter-spacing:
   .mission-title h3 { font-size: 1rem; }
   .status-buttons button span { font-size: 1.45rem; }
   .note-box textarea { min-height: 96px; }
+  .prize-claim-grid { grid-template-columns: 1fr; }
+  .prize-claim-card { min-height: 104px; }
 }
