@@ -1,7 +1,7 @@
 {
-  "name": "missoes-semana-app",
+  "name": "app-recompensas",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "firebase": "^11.10.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
