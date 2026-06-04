@@ -1,0 +1,587 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f1ff;
+  color: #1f2937;
+  --card: rgba(255, 255, 255, 0.9);
+  --ink-muted: #6b7280;
+  --purple: #7c3aed;
+  --blue: #0ea5e9;
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --ring: rgba(124, 58, 237, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.25), transparent 30%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.22), transparent 32%),
+    linear-gradient(135deg, #f7f2ff 0%, #eef9ff 50%, #fff7ed 100%);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+.file-button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 64px;
+}
+
+.hero-card,
+.panel,
+.child-card,
+.summary-card,
+.reward-card,
+.mission-card {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 24px 60px rgba(55, 48, 163, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.hero-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 30px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.66));
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--purple);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 10px;
+  font-size: clamp(2.15rem, 6vw, 4.75rem);
+  line-height: 0.95;
+  letter-spacing: -0.08em;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: clamp(1.45rem, 3.2vw, 2.3rem);
+  letter-spacing: -0.04em;
+}
+
+.hero-copy {
+  max-width: 640px;
+  margin-bottom: 0;
+  color: var(--ink-muted);
+  font-size: 1.08rem;
+}
+
+.date-card {
+  display: grid;
+  gap: 10px;
+  min-width: 240px;
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.date-card span {
+  color: #5b21b6;
+  font-weight: 800;
+  font-size: 0.86rem;
+}
+
+.date-card input,
+.inline-form input,
+.settings-list input,
+.note-box textarea {
+  width: 100%;
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111827;
+  outline: none;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.date-card input,
+.inline-form input,
+.settings-list input {
+  height: 46px;
+  padding: 0 14px;
+}
+
+.date-card input:focus,
+.inline-form input:focus,
+.settings-list input:focus,
+.note-box textarea:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.children-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 20px 0;
+}
+
+.child-card {
+  display: grid;
+  gap: 8px;
+  min-height: 190px;
+  padding: 22px;
+  text-align: left;
+  border-radius: 28px;
+  border-color: transparent;
+  background: var(--card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.child-card:hover,
+.child-card.is-selected {
+  transform: translateY(-3px);
+  border-color: rgba(124, 58, 237, 0.35);
+  box-shadow: 0 28px 70px rgba(55, 48, 163, 0.2);
+}
+
+.avatar {
+  display: inline-grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 2rem;
+}
+
+.child-name {
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.child-age,
+.child-card small,
+.summary-card p,
+.reward-card small,
+.mission-title p,
+.muted-text {
+  color: var(--ink-muted);
+}
+
+.theme-purple {
+  background: linear-gradient(135deg, rgba(245, 243, 255, 0.95), rgba(253, 244, 255, 0.86));
+}
+
+.theme-blue {
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.95), rgba(236, 253, 245, 0.86));
+}
+
+.progress-track {
+  width: 100%;
+  height: 13px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(17, 24, 39, 0.09);
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7c3aed, #06b6d4, #22c55e);
+  transition: width 0.3s ease;
+}
+
+.tabbar {
+  position: sticky;
+  top: 12px;
+  z-index: 2;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 10px;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.tabbar button,
+.inline-form button,
+.primary-link,
+.file-button,
+.ghost {
+  min-height: 44px;
+  border: 0;
+  border-radius: 16px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.tabbar button {
+  padding: 0 18px;
+  background: transparent;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.tabbar button.active,
+.inline-form button,
+.primary-link,
+.file-button {
+  background: #111827;
+  color: #fff;
+}
+
+.panel {
+  padding: 26px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.score-pill {
+  min-width: 140px;
+  padding: 14px 18px;
+  border-radius: 24px;
+  background: #111827;
+  color: #fff;
+  text-align: center;
+}
+
+.score-pill strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.score-pill span {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.mission-list,
+.settings-list {
+  display: grid;
+  gap: 12px;
+}
+
+.mission-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.mission-title {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.mission-title > span {
+  display: inline-grid;
+  min-width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(124, 58, 237, 0.1);
+  font-size: 1.5rem;
+}
+
+.mission-title h3 {
+  margin: 0 0 2px;
+  letter-spacing: -0.02em;
+}
+
+.mission-title p {
+  margin: 0;
+}
+
+.status-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.status-buttons button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 14px;
+  background: #fff;
+  font-weight: 850;
+}
+
+.status-buttons .ok.active {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.55);
+  color: #166534;
+}
+
+.status-buttons .not-ok.active {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.48);
+  color: #991b1b;
+}
+
+.status-buttons .na.active {
+  background: rgba(107, 114, 128, 0.14);
+  border-color: rgba(107, 114, 128, 0.36);
+  color: #374151;
+}
+
+.status-ok {
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+.status-not-ok {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.note-box {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  color: #374151;
+  font-weight: 850;
+}
+
+.note-box textarea {
+  min-height: 110px;
+  padding: 14px;
+  resize: vertical;
+}
+
+.summary-grid,
+.reward-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summary-card,
+.reward-card {
+  padding: 20px;
+  border-radius: 26px;
+}
+
+.summary-topline {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.summary-topline h3 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.summary-topline p {
+  margin: 2px 0 0;
+}
+
+.big-number {
+  margin: 12px 0 6px;
+  font-size: clamp(2.6rem, 8vw, 4.25rem);
+  font-weight: 950;
+  line-height: 0.9;
+  letter-spacing: -0.08em;
+}
+
+.summary-points,
+.reward-tier {
+  margin-bottom: 0;
+  font-weight: 800;
+}
+
+.section-title {
+  margin: 28px 0 14px;
+  font-size: 1.2rem;
+}
+
+.reward-card {
+  display: grid;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.reward-card span {
+  font-size: 2rem;
+}
+
+.inline-form,
+.settings-list article,
+.data-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.inline-form {
+  grid-template-columns: 72px minmax(180px, 1fr) 100px 150px;
+  margin-bottom: 18px;
+}
+
+.inline-form button,
+.primary-link,
+.file-button {
+  display: inline-grid;
+  place-items: center;
+  padding: 0 18px;
+}
+
+.settings-list article {
+  grid-template-columns: 72px minmax(180px, 1fr) 90px 110px 110px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.toggle-label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.toggle-label input {
+  width: 18px;
+  height: 18px;
+}
+
+.ghost {
+  padding: 0 14px;
+  background: rgba(17, 24, 39, 0.06);
+  color: #111827;
+}
+
+.danger {
+  color: #991b1b;
+}
+
+.muted-row {
+  opacity: 0.55;
+}
+
+.data-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.file-button {
+  position: relative;
+  cursor: pointer;
+}
+
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 820px) {
+  .app-shell {
+    width: min(100% - 20px, 1120px);
+    padding-top: 12px;
+  }
+
+  .hero-card,
+  .children-grid,
+  .panel-header,
+  .mission-card,
+  .summary-grid,
+  .reward-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-card,
+  .panel {
+    border-radius: 24px;
+    padding: 20px;
+  }
+
+  .date-card {
+    min-width: 0;
+  }
+
+  .children-grid {
+    gap: 12px;
+  }
+
+  .child-card {
+    min-height: auto;
+    border-radius: 22px;
+  }
+
+  .score-pill {
+    width: 100%;
+  }
+
+  .status-buttons {
+    justify-content: stretch;
+  }
+
+  .status-buttons button {
+    flex: 1;
+  }
+
+  .inline-form,
+  .settings-list article,
+  .data-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-list article input:first-child,
+  .inline-form input:first-child {
+    max-width: 90px;
+  }
+}
