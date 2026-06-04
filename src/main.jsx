@@ -24,7 +24,9 @@ const defaultData = {
     { id: 'pizza', title: 'Noite da pizza', cost: 30, icon: '🍕' }
   ],
   records: {},
-  notes: {}
+  notes: {},
+  rewardRedemptions: {},
+  transfers: {}
 }
 
 function App() {
@@ -179,6 +181,70 @@ function App() {
     setData((current) => ({ ...current, rewards: current.rewards.filter((reward) => reward.id !== rewardId) }))
   }
 
+  function togglePrizeRedemption(childId, rewardId, weekKey) {
+    setData((current) => {
+      const child = current.children.find((item) => item.id === childId)
+      const reward = current.rewards.find((item) => item.id === rewardId)
+      if (!child || !reward) return current
+
+      const activities = sortActivities(current.activities).filter((activity) => activity.active)
+      const summary = calculateWeekSummary({ child, activities, records: current.records, selectedDate: weekKey })
+      const weekRedemptions = current.rewardRedemptions?.[weekKey] ?? {}
+      const childRedemptions = weekRedemptions[childId] ?? {}
+      const nextChildRedemptions = { ...childRedemptions }
+      const transferred = Number(current.transfers?.[weekKey]?.[childId] ?? 0)
+      const used = calculateUsedRewards(childRedemptions, current.rewards)
+      const available = Math.max(0, summary.points + transferred - used)
+      const cost = clampTwoDigit(reward.cost, 0)
+
+      if (nextChildRedemptions[rewardId]) {
+        delete nextChildRedemptions[rewardId]
+      } else {
+        if (cost > available) return current
+        nextChildRedemptions[rewardId] = true
+      }
+
+      const newUsed = calculateUsedRewards(nextChildRedemptions, current.rewards)
+      const nextBalance = Math.max(0, summary.points + transferred - newUsed)
+      const nextWeekKey = getNextWeekKey(weekKey)
+      const nextWeekTransfers = current.transfers?.[nextWeekKey] ?? {}
+      const shouldUpdateNextTransfer = Object.prototype.hasOwnProperty.call(nextWeekTransfers, childId)
+      const nextTransfers = shouldUpdateNextTransfer
+        ? {
+          ...(current.transfers ?? {}),
+          [nextWeekKey]: { ...nextWeekTransfers, [childId]: nextBalance }
+        }
+        : current.transfers
+
+      return {
+        ...current,
+        rewardRedemptions: {
+          ...(current.rewardRedemptions ?? {}),
+          [weekKey]: {
+            ...weekRedemptions,
+            [childId]: nextChildRedemptions
+          }
+        },
+        transfers: nextTransfers
+      }
+    })
+  }
+
+  function transferBalanceToNextWeek(childId, weekKey, amount) {
+    const nextWeekKey = getNextWeekKey(weekKey)
+    const transferAmount = Math.max(0, Math.round(Number(amount) || 0))
+    setData((current) => ({
+      ...current,
+      transfers: {
+        ...(current.transfers ?? {}),
+        [nextWeekKey]: {
+          ...(current.transfers?.[nextWeekKey] ?? {}),
+          [childId]: transferAmount
+        }
+      }
+    }))
+  }
+
   function importData(file) {
     const reader = new FileReader()
     reader.onload = () => {
@@ -210,7 +276,7 @@ function App() {
           <div>
             <p className="eyebrow">Quadro familiar</p>
             <h1>Missões da Semana</h1>
-            <p className="hero-copy">Marque pequenas conquistas do dia, acompanhe estrelas e combine recompensas para o fim de semana.</p>
+            <p className="hero-copy">Marque pequenas conquistas do dia, acompanhe estrelas e combine prêmios para o fim de semana.</p>
           </div>
           <div className="hero-actions">
             <button className="theme-toggle" onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')} aria-label="Alternar modo claro e escuro">
@@ -252,12 +318,12 @@ function App() {
           <button className={activeTab === 'today' ? 'active' : ''} onClick={() => setActiveTab('today')}>Hoje</button>
           <button className={activeTab === 'week' ? 'active' : ''} onClick={() => setActiveTab('week')}>Semana</button>
           <button className={activeTab === 'activities' ? 'active' : ''} onClick={() => setActiveTab('activities')}>Atividades</button>
-          <button className={activeTab === 'rewards' ? 'active' : ''} onClick={() => setActiveTab('rewards')}>Recompensas</button>
+          <button className={activeTab === 'rewards' ? 'active' : ''} onClick={() => setActiveTab('rewards')}>Prêmios</button>
           <button className={activeTab === 'data' ? 'active' : ''} onClick={() => setActiveTab('data')}>Dados</button>
         </nav>
 
         {activeTab === 'today' && <TodayPanel child={selectedChild} activities={activeActivities} selectedDate={selectedDate} records={data.records} notes={data.notes} onUpdateRecord={updateRecord} onUpdateNote={updateNote} />}
-        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries} rewards={data.rewards} selectedDate={selectedDate} />}
+        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries} rewards={data.rewards} selectedDate={selectedDate} rewardRedemptions={data.rewardRedemptions} transfers={data.transfers} onTogglePrize={togglePrizeRedemption} onTransferBalance={transferBalanceToNextWeek} />}
         {activeTab === 'activities' && <ActivitiesPanel activities={orderedActivities} onAddActivity={addActivity} onUpdateActivity={updateActivity} onRemoveActivity={removeActivity} onMoveActivity={moveActivity} />}
         {activeTab === 'rewards' && <RewardsPanel rewards={data.rewards} onAddReward={addReward} onUpdateReward={updateReward} onRemoveReward={removeReward} />}
         {activeTab === 'data' && <DataPanel data={data} onImportData={importData} onResetData={resetData} />}
@@ -360,24 +426,82 @@ function TodayPanel({ child, activities, selectedDate, records, notes, onUpdateR
   )
 }
 
-function WeekPanel({ summaries, rewards, selectedDate }) {
+function WeekPanel({ summaries, rewards, selectedDate, rewardRedemptions, transfers, onTogglePrize, onTransferBalance }) {
   const weekDays = getWeekDates(selectedDate)
+  const weekKey = weekDays[0]
+  const nextWeekKey = getNextWeekKey(weekKey)
+
   return (
     <section className="panel entrance-card">
-      <div className="panel-header"><div><p className="eyebrow">Resumo semanal</p><h2>Semana de {formatFriendlyDate(weekDays[0])} a {formatFriendlyDate(weekDays[6])}</h2></div></div>
-      <div className="summary-grid">
-        {summaries.map((summary) => (
-          <article key={summary.child.id} className={`summary-card theme-${summary.child.theme}`}>
-            <div className="summary-topline"><span className="avatar mini-avatar">{summary.child.photo ? <img src={summary.child.photo} alt="" /> : summary.child.avatar}</span><div><h3>{summary.child.name}</h3><p>{summary.completed} <span className="inline-status-icon">👍</span> de {summary.applicable} marcações aplicáveis</p></div></div>
-            <ProgressBar value={summary.percentage} />
-            <div className="big-number">{summary.percentage}%</div>
-            <p className="summary-points">⭐ {summary.points} estrelas acumuladas</p>
-            <p className="reward-tier">{getTierMessage(summary.percentage)}</p>
-          </article>
-        ))}
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Resumo semanal</p>
+          <h2>Semana de {formatFriendlyDate(weekDays[0])} a {formatFriendlyDate(weekDays[6])}</h2>
+        </div>
       </div>
-      <h3 className="section-title">Prêmios possíveis</h3>
-      <div className="reward-grid">{rewards.map((reward) => <article className="reward-card" key={reward.id}><span>{reward.icon}</span><strong>{reward.title}</strong><small>{reward.cost} estrelas</small></article>)}</div>
+      <div className="summary-grid">
+        {summaries.map((summary) => {
+          const childId = summary.child.id
+          const childRedemptions = rewardRedemptions?.[weekKey]?.[childId] ?? {}
+          const transferred = Number(transfers?.[weekKey]?.[childId] ?? 0)
+          const used = calculateUsedRewards(childRedemptions, rewards)
+          const balance = Math.max(0, summary.points + transferred - used)
+          const nextTransfer = Number(transfers?.[nextWeekKey]?.[childId] ?? 0)
+
+          return (
+            <article key={childId} className={`summary-card theme-${summary.child.theme}`}>
+              <div className="summary-topline">
+                <span className="avatar mini-avatar">{summary.child.photo ? <img src={summary.child.photo} alt="" /> : summary.child.avatar}</span>
+                <div>
+                  <h3>{summary.child.name}</h3>
+                  <p>{summary.completed} <span className="inline-status-icon">👍</span> de {summary.applicable} marcações aplicáveis</p>
+                </div>
+              </div>
+              <ProgressBar value={summary.percentage} />
+              <div className="big-number">{summary.percentage}%</div>
+              <p className="summary-points">⭐ {summary.points} estrelas acumuladas</p>
+              <p className="summary-finance">↔️ {transferred} estrelas transferidas</p>
+              <p className="summary-finance">🏆 {used} estrelas utilizadas</p>
+              <p className="summary-finance balance-line">🧾 {balance} moedas disponíveis</p>
+              <p className="reward-tier">{getTierMessage(summary.percentage)}</p>
+
+              <div className="weekly-prizes">
+                <h4>Prêmios possíveis</h4>
+                <div className="prize-claim-grid">
+                  {rewards.map((reward) => {
+                    const isRedeemed = Boolean(childRedemptions[reward.id])
+                    const cost = clampTwoDigit(reward.cost, 0)
+                    const canRedeem = isRedeemed || cost <= balance
+                    return (
+                      <button
+                        key={reward.id}
+                        className={`prize-claim-card ${isRedeemed ? 'is-redeemed' : ''}`}
+                        onClick={() => onTogglePrize(childId, reward.id, weekKey)}
+                        disabled={!canRedeem}
+                      >
+                        <span className="prize-icon">{reward.icon}</span>
+                        <strong>{reward.title}</strong>
+                        <small>{cost} moedas</small>
+                        <em>{isRedeemed ? 'Resgatado' : canRedeem ? 'Resgatar' : `Faltam ${cost - balance}`}</em>
+                      </button>
+                    )
+                  })}
+                  <button
+                    className={`prize-claim-card accumulate-card ${nextTransfer > 0 ? 'is-redeemed' : ''}`}
+                    onClick={() => onTransferBalance(childId, weekKey, balance)}
+                    disabled={balance <= 0}
+                  >
+                    <span className="prize-icon">🪙</span>
+                    <strong>Acumular moedas</strong>
+                    <small>Transferir saldo</small>
+                    <em>{nextTransfer > 0 ? `${nextTransfer} para próxima semana` : balance > 0 ? `${balance} disponíveis` : 'Sem saldo'}</em>
+                  </button>
+                </div>
+              </div>
+            </article>
+          )
+        })}
+      </div>
     </section>
   )
 }
@@ -431,16 +555,16 @@ function RewardsPanel({ rewards, onAddReward, onUpdateReward, onRemoveReward }) 
     setForm({ title: '', cost: '10', icon: '🎁' })
   }
   return (
-    <section className="panel entrance-card"><div className="panel-header"><div><p className="eyebrow">Configuração</p><h2>Recompensas</h2></div></div>
+    <section className="panel entrance-card"><div className="panel-header"><div><p className="eyebrow">Configuração</p><h2>Prêmios</h2></div></div>
       <form className="inline-form rewards-form" onSubmit={submit}>
         <label className="field small-field"><span>Ícone</span><input value={form.icon} maxLength={2} onChange={(event) => setForm({ ...form, icon: event.target.value })} aria-label="Ícone" /></label>
-        <label className="field"><span>Prêmio</span><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Nova recompensa" /></label>
+        <label className="field"><span>Prêmio</span><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Novo prêmio" /></label>
         <label className="field numeric-field"><span>Estrelas</span><input inputMode="numeric" maxLength={2} value={form.cost} onChange={(event) => setForm({ ...form, cost: sanitizeTwoDigitInput(event.target.value) })} aria-label="Estrelas" /></label>
         <button type="submit">Adicionar</button>
       </form>
       <div className="settings-list rewards-settings">{rewards.map((reward) => <article key={reward.id}>
         <label className="field small-field"><span>Ícone</span><input value={reward.icon} maxLength={2} onChange={(event) => onUpdateReward(reward.id, { icon: event.target.value })} aria-label="Ícone" /></label>
-        <label className="field"><span>Prêmio</span><input value={reward.title} onChange={(event) => onUpdateReward(reward.id, { title: event.target.value })} aria-label="Recompensa" /></label>
+        <label className="field"><span>Prêmio</span><input value={reward.title} onChange={(event) => onUpdateReward(reward.id, { title: event.target.value })} aria-label="Prêmio" /></label>
         <label className="field numeric-field"><span>Estrelas</span><input inputMode="numeric" maxLength={2} value={String(reward.cost ?? 0)} onChange={(event) => onUpdateReward(reward.id, { cost: clampTwoDigit(event.target.value, 0) })} aria-label="Estrelas" /></label>
         <button className="ghost danger" onClick={() => onRemoveReward(reward.id)}>Remover</button>
       </article>)}</div>
@@ -485,7 +609,9 @@ function normalizeData(data) {
     ...data,
     children: (data.children ?? defaultData.children).map((child) => ({ photo: '', ...child })),
     activities: (data.activities ?? defaultData.activities).map((activity, index) => ({ ...activity, points: clampTwoDigit(activity.points, 1), order: clampTwoDigit(activity.order, index + 1) })),
-    rewards: (data.rewards ?? defaultData.rewards).map((reward) => ({ ...reward, cost: clampTwoDigit(reward.cost, 10) }))
+    rewards: (data.rewards ?? defaultData.rewards).map((reward) => ({ ...reward, cost: clampTwoDigit(reward.cost, 10) })),
+    rewardRedemptions: data.rewardRedemptions ?? {},
+    transfers: data.transfers ?? {}
   }
 }
 
@@ -520,6 +646,10 @@ function calculateWeekSummary({ child, activities, records, selectedDate }) {
   return { child, points, possiblePoints, percentage, completed, applicable }
 }
 
+function calculateUsedRewards(redemptions, rewards) {
+  return rewards.reduce((total, reward) => redemptions?.[reward.id] ? total + clampTwoDigit(reward.cost, 0) : total, 0)
+}
+
 function getWeekDates(dateString) {
   const date = parseLocalDate(dateString)
   const day = date.getDay()
@@ -527,6 +657,12 @@ function getWeekDates(dateString) {
   const monday = new Date(date)
   monday.setDate(date.getDate() + distanceFromMonday)
   return Array.from({ length: 7 }, (_, index) => { const nextDate = new Date(monday); nextDate.setDate(monday.getDate() + index); return formatDate(nextDate) })
+}
+
+function getNextWeekKey(weekKey) {
+  const next = parseLocalDate(weekKey)
+  next.setDate(next.getDate() + 7)
+  return formatDate(next)
 }
 
 function getTierMessage(percentage) {
