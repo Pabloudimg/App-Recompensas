@@ -11,6 +11,50 @@ function replaceOnce(text, oldText, newText) {
   return text.includes(oldText) ? text.replace(oldText, newText) : text
 }
 
+const oldTransferFunction = [
+  '  function transferBalanceToNextWeek(childId, weekKey, amount) {',
+  '    const nextWeekKey = getNextWeekKey(weekKey)',
+  '    const transferAmount = Math.max(0, Math.round(Number(amount) || 0))',
+  '    setData((current) => ({',
+  '      ...current,',
+  '      transfers: {',
+  '        ...(current.transfers ?? {}),',
+  '        [nextWeekKey]: {',
+  '          ...(current.transfers?.[nextWeekKey] ?? {}),',
+  '          [childId]: transferAmount',
+  '        }',
+  '      }',
+  '    }))',
+  '  }'
+].join('\n')
+
+const newTransferFunction = [
+  '  function transferBalanceToNextWeek(childId, weekKey, amount) {',
+  '    const nextWeekKey = getNextWeekKey(weekKey)',
+  '    const transferAmount = Math.max(0, Math.round(Number(amount) || 0))',
+  '    setData((current) => {',
+  '      const nextWeekTransfers = current.transfers?.[nextWeekKey] ?? {}',
+  '      const alreadyTransferred = Number(nextWeekTransfers[childId] ?? 0) > 0',
+  '      const nextChildTransfers = { ...nextWeekTransfers }',
+  '',
+  '      if (alreadyTransferred) {',
+  '        delete nextChildTransfers[childId]',
+  '      } else {',
+  '        nextChildTransfers[childId] = transferAmount',
+  '      }',
+  '',
+  '      return {',
+  '        ...current,',
+  '        transfers: {',
+  '          ...(current.transfers ?? {}),',
+  '          [nextWeekKey]: nextChildTransfers',
+  '        }',
+  '      }',
+  '    })',
+  '  }'
+].join('\n')
+mainText = replaceOnce(mainText, oldTransferFunction, newTransferFunction)
+
 const oldWeekCall = "        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries} rewards={data.rewards} selectedDate={selectedDate} rewardRedemptions={data.rewardRedemptions} transfers={data.transfers} onTogglePrize={togglePrizeRedemption} onTransferBalance={transferBalanceToNextWeek} />}"
 const newWeekCall = "        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries.filter((summary) => summary.child.id === selectedChildId)} rewards={data.rewards} selectedDate={selectedDate} rewardRedemptions={data.rewardRedemptions} transfers={data.transfers} onTogglePrize={togglePrizeRedemption} onTransferBalance={transferBalanceToNextWeek} />}"
 mainText = replaceOnce(mainText, oldWeekCall, newWeekCall)
@@ -48,13 +92,16 @@ const newWeekMetrics = [
   '              <div className="week-metrics">',
   '                <p className="summary-points">⭐ <strong className="metric-value good">{summary.points}</strong> estrelas obtidas na semana</p>',
   '                <p className="summary-finance">↔️ <strong className="metric-value good">{transferred}</strong> estrelas transferidas</p>',
-  '                <p className="summary-finance">🏆 <strong className="metric-value bad">{used}</strong> estrelas utilizadas</p>',
-  '                <p className="summary-finance balance-line">🧾 <strong className="metric-value good">{balance}</strong> estrelas disponíveis</p>',
+  '                <p className="summary-finance">🏆 <strong className="metric-value bad">{used + nextTransfer}</strong> estrelas utilizadas</p>',
+  '                <p className="summary-finance balance-line">🧾 <strong className="metric-value good">{Math.max(0, balance - nextTransfer)}</strong> estrelas disponíveis</p>',
   '              </div>'
 ].join('\n')
 
 if (!mainText.includes('className="week-metrics"')) {
   mainText = replaceOnce(mainText, oldWeekMetrics, newWeekMetrics)
+} else {
+  mainText = mainText.replace('{used}</strong> estrelas utilizadas', '{used + nextTransfer}</strong> estrelas utilizadas')
+  mainText = mainText.replace('{balance}</strong> estrelas disponíveis', '{Math.max(0, balance - nextTransfer)}</strong> estrelas disponíveis')
 }
 
 const oldPrizeIcon = [
@@ -71,6 +118,34 @@ const newPrizeIcon = [
 if (!mainText.includes('className="redeemed-check"')) {
   mainText = replaceOnce(mainText, oldPrizeIcon, newPrizeIcon)
 }
+
+const oldAccumulate = [
+  '                  <button',
+  '                    className={`prize-claim-card accumulate-card ${nextTransfer > 0 ? \'is-redeemed\' : \'\'}`}',
+  '                    onClick={() => onTransferBalance(childId, weekKey, balance)}',
+  '                    disabled={balance <= 0}',
+  '                  >',
+  '                    <span className="prize-icon">🪙</span>',
+  '                    <strong>Acumular moedas</strong>',
+  '                    <small>Transferir saldo</small>',
+  "                    <em>{nextTransfer > 0 ? `${nextTransfer} para próxima semana` : balance > 0 ? `${balance} disponíveis` : 'Sem saldo'}</em>",
+  '                  </button>'
+].join('\n')
+
+const newAccumulate = [
+  '                  <button',
+  '                    className={`prize-claim-card accumulate-card ${nextTransfer > 0 ? \'is-redeemed\' : \'\'}`}',
+  '                    onClick={() => onTransferBalance(childId, weekKey, Math.max(0, balance - nextTransfer))}',
+  '                    disabled={balance <= 0 && nextTransfer <= 0}',
+  '                  >',
+  '                    {nextTransfer > 0 && <span className="redeemed-check" aria-hidden="true">✓</span>}',
+  '                    <span className="prize-icon">🪙</span>',
+  '                    <strong>Acumular moedas</strong>',
+  '                    <small>Transferir saldo</small>',
+  "                    <em>{nextTransfer > 0 ? `${nextTransfer} para próxima semana` : balance > 0 ? `${balance} disponíveis` : 'Sem saldo'}</em>",
+  '                  </button>'
+].join('\n')
+mainText = replaceOnce(mainText, oldAccumulate, newAccumulate)
 
 fs.writeFileSync(mainPath, mainText, 'utf8')
 
