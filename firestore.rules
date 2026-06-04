@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function familyDoc(familyId) {
+      return /databases/$(database)/documents/families/$(familyId);
+    }
+
+    function memberDoc(familyId) {
+      return /databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid);
+    }
+
+    function isOwnerByRequest() {
+      return signedIn() && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    function isOwner(familyId) {
+      return signedIn()
+        && exists(familyDoc(familyId))
+        && get(familyDoc(familyId)).data.ownerUid == request.auth.uid;
+    }
+
+    function isMember(familyId) {
+      return signedIn() && exists(memberDoc(familyId));
+    }
+
+    match /userProfiles/{userId} {
+      allow read, create, update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+    match /families/{familyId} {
+      allow create: if isOwnerByRequest();
+      allow read, update: if isOwner(familyId) || isMember(familyId);
+      allow delete: if isOwner(familyId);
+
+      match /members/{userId} {
+        allow read: if isOwner(familyId) || isMember(familyId);
+        allow create: if isOwner(familyId) || isSelf(userId);
+        allow update: if isOwner(familyId) || isSelf(userId);
+        allow delete: if isOwner(familyId);
+      }
+
+      match /children/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      match /activities/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      match /rewards/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      match /dailyRecords/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      match /dailyNotes/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      match /weeklyRedemptions/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      match /weeklyTransfers/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+    }
+  }
+}
