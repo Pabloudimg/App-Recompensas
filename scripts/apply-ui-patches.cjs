@@ -55,9 +55,88 @@ const newTransferFunction = [
 ].join('\n')
 mainText = replaceOnce(mainText, oldTransferFunction, newTransferFunction)
 
+const oldRemovePhotoFunction = [
+  '  function removeChildPhoto(childId) {',
+  '    setData((current) => ({',
+  '      ...current,',
+  "      children: current.children.map((child) => (child.id === childId ? { ...child, photo: '' } : child))",
+  '    }))',
+  '  }'
+].join('\n')
+
+const childProfileFunctions = [
+  oldRemovePhotoFunction,
+  '',
+  '  function updateChildProfile(childId, patch) {',
+  '    setData((current) => ({',
+  '      ...current,',
+  '      children: current.children.map((child) =>',
+  '        child.id === childId ? { ...child, ...patch } : child',
+  '      )',
+  '    }))',
+  '  }',
+  '',
+  '  function addChildProfile(child) {',
+  "    const name = String(child.name ?? '').trim()",
+  '    if (!name) return',
+  '    const id = createId(name)',
+  '    const birthDate = child.birthDate || \'\'',
+  '    setData((current) => ({',
+  '      ...current,',
+  '      children: [',
+  '        ...current.children,',
+  '        {',
+  '          id,',
+  '          name,',
+  '          birthDate,',
+  '          age: calculateAge(birthDate, 0),',
+  "          avatar: child.avatar || '🙂',",
+  "          photo: '',",
+  "          theme: child.theme || 'blue'",
+  '        }',
+  '      ]',
+  '    }))',
+  '    setSelectedChildId(id)',
+  '  }',
+  '',
+  '  function removeChildProfile(childId) {',
+  '    if (data.children.length <= 1) {',
+  "      alert('É necessário manter pelo menos uma criança cadastrada.')",
+  '      return',
+  '    }',
+  "    const confirmation = window.confirm('Remover esta criança do cadastro? O histórico antigo ficará salvo, mas não será exibido.')",
+  '    if (!confirmation) return',
+  '    const nextSelected = data.children.find((child) => child.id !== childId)?.id',
+  '    setData((current) => ({',
+  '      ...current,',
+  '      children: current.children.filter((child) => child.id !== childId)',
+  '    }))',
+  '    if (selectedChildId === childId && nextSelected) setSelectedChildId(nextSelected)',
+  '  }'
+].join('\n')
+if (!mainText.includes('function updateChildProfile')) {
+  mainText = replaceOnce(mainText, oldRemovePhotoFunction, childProfileFunctions)
+}
+
 const oldWeekCall = "        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries} rewards={data.rewards} selectedDate={selectedDate} rewardRedemptions={data.rewardRedemptions} transfers={data.transfers} onTogglePrize={togglePrizeRedemption} onTransferBalance={transferBalanceToNextWeek} />}"
 const newWeekCall = "        {activeTab === 'week' && <WeekPanel summaries={weeklySummaries.filter((summary) => summary.child.id === selectedChildId)} rewards={data.rewards} selectedDate={selectedDate} rewardRedemptions={data.rewardRedemptions} transfers={data.transfers} onTogglePrize={togglePrizeRedemption} onTransferBalance={transferBalanceToNextWeek} />}"
 mainText = replaceOnce(mainText, oldWeekCall, newWeekCall)
+
+const oldChildAge = '                <span className="child-age">{child.age} anos</span>'
+const newChildAge = '                <span className="child-age">{getChildAgeLabel(child)}</span>'
+mainText = replaceOnce(mainText, oldChildAge, newChildAge)
+
+const oldNavChildren = "          <button className={activeTab === 'rewards' ? 'active' : ''} onClick={() => setActiveTab('rewards')}>Prêmios</button>\n          <button className={activeTab === 'data' ? 'active' : ''} onClick={() => setActiveTab('data')}>Dados</button>"
+const newNavChildren = "          <button className={activeTab === 'rewards' ? 'active' : ''} onClick={() => setActiveTab('rewards')}>Prêmios</button>\n          <button className={activeTab === 'children' ? 'active' : ''} onClick={() => setActiveTab('children')}>Crianças</button>\n          <button className={activeTab === 'data' ? 'active' : ''} onClick={() => setActiveTab('data')}>Dados</button>"
+if (!mainText.includes("setActiveTab('children')")) {
+  mainText = replaceOnce(mainText, oldNavChildren, newNavChildren)
+}
+
+const oldPanelChildren = "        {activeTab === 'rewards' && <RewardsPanel rewards={data.rewards} onAddReward={addReward} onUpdateReward={updateReward} onRemoveReward={removeReward} />}\n        {activeTab === 'data' && <DataPanel data={data} onImportData={importData} onResetData={resetData} />}"
+const newPanelChildren = "        {activeTab === 'rewards' && <RewardsPanel rewards={data.rewards} onAddReward={addReward} onUpdateReward={updateReward} onRemoveReward={removeReward} />}\n        {activeTab === 'children' && <ChildrenPanel children={data.children} selectedChildId={selectedChildId} onSelectChild={setSelectedChildId} onAddChild={addChildProfile} onUpdateChild={updateChildProfile} onRemoveChild={removeChildProfile} onPhotoChange={updateChildPhoto} onRemovePhoto={removeChildPhoto} />}\n        {activeTab === 'data' && <DataPanel data={data} onImportData={importData} onResetData={resetData} />}"
+if (!mainText.includes('<ChildrenPanel')) {
+  mainText = replaceOnce(mainText, oldPanelChildren, newPanelChildren)
+}
 
 const oldTodayPoints = [
   '                  <h3>{activity.title}</h3>',
@@ -147,6 +226,86 @@ const newAccumulate = [
 ].join('\n')
 mainText = replaceOnce(mainText, oldAccumulate, newAccumulate)
 
+const childrenPanel = `
+function ChildrenPanel({ children, selectedChildId, onSelectChild, onAddChild, onUpdateChild, onRemoveChild, onPhotoChange, onRemovePhoto }) {
+  const [form, setForm] = useState({ name: '', birthDate: '', avatar: '🙂', theme: 'blue' })
+
+  function submit(event) {
+    event.preventDefault()
+    if (!form.name.trim()) return
+    onAddChild(form)
+    setForm({ name: '', birthDate: '', avatar: '🙂', theme: 'blue' })
+  }
+
+  return (
+    <section className="panel entrance-card">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Cadastro</p>
+          <h2>Crianças</h2>
+          <p className="muted-text">Cadastre nome, data de nascimento e foto. A idade passa a ser calculada automaticamente.</p>
+        </div>
+      </div>
+
+      <form className="inline-form children-form" onSubmit={submit}>
+        <label className="field"><span>Nome</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Nome da criança" /></label>
+        <label className="field"><span>Nascimento</span><input type="date" value={form.birthDate} onChange={(event) => setForm({ ...form, birthDate: event.target.value })} /></label>
+        <label className="field small-field"><span>Ícone</span><input value={form.avatar} maxLength={2} onChange={(event) => setForm({ ...form, avatar: event.target.value })} /></label>
+        <label className="field"><span>Tema</span><select value={form.theme} onChange={(event) => setForm({ ...form, theme: event.target.value })}><option value="purple">Roxo</option><option value="blue">Azul</option></select></label>
+        <button type="submit">Adicionar</button>
+      </form>
+
+      <div className="settings-list children-settings">
+        {children.map((child) => (
+          <article key={child.id} className={'child-admin-card theme-' + child.theme}>
+            <div className="child-photo-tools">
+              <span className="avatar child-admin-avatar">{child.photo ? <img src={child.photo} alt={child.name} /> : child.avatar}</span>
+              <label className="file-button compact-file">Foto<input type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/*" onChange={(event) => { onPhotoChange(child.id, event.target.files?.[0]); event.currentTarget.value = '' }} /></label>
+              {child.photo && <button className="ghost compact-ghost" onClick={() => onRemovePhoto(child.id)}>Remover foto</button>}
+            </div>
+            <label className="field"><span>Nome</span><input value={child.name} onChange={(event) => onUpdateChild(child.id, { name: event.target.value })} /></label>
+            <label className="field"><span>Nascimento</span><input type="date" value={child.birthDate ?? ''} onChange={(event) => onUpdateChild(child.id, { birthDate: event.target.value })} /></label>
+            <label className="field small-field"><span>Ícone</span><input value={child.avatar} maxLength={2} onChange={(event) => onUpdateChild(child.id, { avatar: event.target.value })} /></label>
+            <label className="field"><span>Tema</span><select value={child.theme ?? 'blue'} onChange={(event) => onUpdateChild(child.id, { theme: event.target.value })}><option value="purple">Roxo</option><option value="blue">Azul</option></select></label>
+            <div className="child-age-display"><span>Idade</span><strong>{getChildAgeLabel(child)}</strong></div>
+            <button className={selectedChildId === child.id ? 'ghost active-selection' : 'ghost'} onClick={() => onSelectChild(child.id)}>{selectedChildId === child.id ? 'Selecionada' : 'Selecionar'}</button>
+            <button className="ghost danger" onClick={() => onRemoveChild(child.id)}>Remover</button>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+`
+if (!mainText.includes('function ChildrenPanel')) {
+  mainText = mainText.replace('function DataPanel({ data, onImportData, onResetData }) {', `${childrenPanel}\nfunction DataPanel({ data, onImportData, onResetData }) {`)
+}
+
+const oldNormalizeChildren = "    children: (data.children ?? defaultData.children).map((child) => ({ photo: '', ...child })),"
+const newNormalizeChildren = "    children: (data.children ?? defaultData.children).map((child) => ({ birthDate: '', photo: '', ...child })),"
+mainText = replaceOnce(mainText, oldNormalizeChildren, newNormalizeChildren)
+
+const ageHelpers = `
+function calculateAge(birthDate, fallbackAge = 0) {
+  if (!birthDate) return Number(fallbackAge) || 0
+  const birth = parseLocalDate(birthDate)
+  if (Number.isNaN(birth.getTime())) return Number(fallbackAge) || 0
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const hadBirthdayThisYear = today.getMonth() > birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate())
+  if (!hadBirthdayThisYear) age -= 1
+  return Math.max(0, age)
+}
+
+function getChildAgeLabel(child) {
+  const age = calculateAge(child.birthDate, child.age)
+  return age === 1 ? '1 ano' : `${age} anos`
+}
+`
+if (!mainText.includes('function calculateAge')) {
+  mainText = mainText.replace('function createId(value) {', `${ageHelpers}\nfunction createId(value) {`)
+}
+
 fs.writeFileSync(mainPath, mainText, 'utf8')
 
 const cssAdd = `
@@ -166,6 +325,25 @@ const cssAdd = `
 
 if (!cssText.includes('.activity-stars') || !cssText.includes('.week-metrics') || !cssText.includes('.redeemed-check')) {
   cssText = cssText.trimEnd() + cssAdd
+}
+
+const childrenCss = `
+
+/* Cadastro de crianças */
+.children-form { grid-template-columns: minmax(180px, 1fr) 160px 76px 120px 150px; align-items: end; }
+.children-form select, .children-settings select { width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid rgba(124, 58, 237, 0.18); border-radius: 16px; background: var(--field); color: var(--ink); outline: none; }
+.children-settings article { grid-template-columns: 180px minmax(160px, 1fr) 150px 76px 120px 92px 118px 105px; align-items: end; }
+.child-photo-tools { display: grid; gap: 8px; align-self: stretch; }
+.child-admin-avatar { width: 72px; height: 72px; border-radius: 24px; }
+.compact-file, .compact-ghost { min-height: 38px; border-radius: 13px; font-size: .82rem; }
+.child-age-display { display: grid; gap: 5px; align-self: end; min-height: 48px; align-content: center; }
+.child-age-display span { color: var(--ink-muted); font-size: .72rem; font-weight: 950; letter-spacing: .06em; text-transform: uppercase; }
+.child-age-display strong { font-size: .95rem; }
+.active-selection { background: rgba(34, 197, 94, .16); color: var(--ink); }
+@media (max-width: 820px) { .children-form, .children-settings article { grid-template-columns: 1fr; } .child-photo-tools { grid-template-columns: 72px 1fr; align-items: center; } }
+`
+if (!cssText.includes('.children-form')) {
+  cssText = cssText.trimEnd() + childrenCss
 }
 
 fs.writeFileSync(cssPath, cssText, 'utf8')
