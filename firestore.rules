@@ -32,9 +32,22 @@ service cloud.firestore {
       return signedIn() && exists(memberDoc(familyId));
     }
 
+    function isInviteRecipient() {
+      return signedIn()
+        && resource.data.email == request.auth.token.email
+        && resource.data.status == 'pendente';
+    }
+
     match /userProfiles/{userId} {
       allow read, create, update: if isSelf(userId);
       allow delete: if false;
+    }
+
+    match /familyInvites/{inviteId} {
+      allow create: if signedIn() && isMember(request.resource.data.familyId);
+      allow read: if signedIn() && (isMember(resource.data.familyId) || resource.data.email == request.auth.token.email);
+      allow update: if signedIn() && (isMember(resource.data.familyId) || isInviteRecipient());
+      allow delete: if signedIn() && isMember(resource.data.familyId);
     }
 
     match /families/{familyId} {
