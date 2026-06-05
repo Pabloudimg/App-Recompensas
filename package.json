@@ -1,11 +1,11 @@
 {
   "name": "app-recompensas",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/apply-family-ui.cjs && vite --host 0.0.0.0",
-    "build": "node scripts/apply-family-ui.cjs && vite build",
+    "dev": "node scripts/apply-family-ui.cjs && node scripts/fix-login-invites.cjs && vite --host 0.0.0.0",
+    "build": "node scripts/apply-family-ui.cjs && node scripts/fix-login-invites.cjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
