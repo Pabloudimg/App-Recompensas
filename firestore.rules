@@ -12,6 +12,19 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    // Normalização usada pelo app para criar o ID do inbox de convites.
+    // Observação: as regras não conseguem recalcular o replace do JS,
+    // então a proteção principal continua sendo email/emailLower no documento.
+    function isInviteInboxOwner() {
+      return signedIn()
+        && resource.data.emailLower == request.auth.token.email.lower();
+    }
+
+    function isInviteInboxOwnerOnWrite() {
+      return signedIn()
+        && request.resource.data.emailLower is string;
+    }
+
     // Referência ao documento principal da família.
     function familyDoc(familyId) {
       return /databases/$(database)/documents/families/$(familyId);
@@ -37,18 +50,6 @@ service cloud.firestore {
     // Verifica se o usuário logado já está cadastrado como membro da família.
     function isMember(familyId) {
       return signedIn() && exists(memberDoc(familyId));
-    }
-
-    // Permite a criação do primeiro membro logo depois da criação da família.
-    // Esse caso acontece quando ainda não existe documento em /members/{uid},
-    // mas o documento da família já existe e tem ownerUid igual ao usuário logado.
-    function isCreatingSelfAsOwner(familyId, userId) {
-      return isSelf(userId)
-        && exists(familyDoc(familyId))
-        && get(familyDoc(familyId)).data.ownerUid == request.auth.uid
-        && request.resource.data.role == 'owner'
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.email == request.auth.token.email;
     }
 
     // Verifica se o documento de convite pertence ao e-mail autenticado e ainda está pendente.
@@ -78,13 +79,21 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Inbox determinístico para convites por e-mail.
+    // Objetivo: o convidado conseguir encontrar convites sem depender de query/listagem.
+    match /inviteInboxes/{inboxId} {
+      allow create, update: if signedIn();
+      allow read: if signedIn();
+      allow delete: if false;
+    }
+
     // Convites para entrar em uma família.
     // Membros da família podem criar/listar/remover convites.
     // O destinatário pode ler e aceitar apenas o convite enviado ao próprio e-mail.
     match /familyInvites/{inviteId} {
       allow create: if signedIn() && isMember(request.resource.data.familyId);
       allow read: if signedIn()
-        && (isMember(resource.data.familyId) || resource.data.email == request.auth.token.email);
+        && (isMember(resource.data.familyId) || resource.data.email == request.auth.token.email || resource.data.emailLower == request.auth.token.email.lower());
       allow update: if signedIn()
         && (isMember(resource.data.familyId) || isInviteRecipient());
       allow delete: if signedIn()
