@@ -88,7 +88,7 @@ async function loadCollection(familyId, collectionName) {
 }
 
 export async function saveFamilyData(familyId, data) {
-  const childDocs = data.children.map((child) => ({ id: child.id, data: stripUndefined({ ...child }) }))
+  const childDocs = data.children.map((child) => ({ id: child.id, data: stripUndefined(stripChildForFirestore(child)) }))
   const activityDocs = data.activities.map((activity) => ({ id: activity.id, data: stripUndefined({ ...activity }) }))
   const rewardDocs = data.rewards.map((reward) => ({ id: reward.id, data: stripUndefined({ ...reward }) }))
   const recordDocs = recordsMapToDocs(data.records, data.activities)
@@ -105,6 +105,12 @@ export async function saveFamilyData(familyId, data) {
   await saveCollection(familyId, 'weeklyTransfers', transferDocs)
 
   await setDoc(doc(db, 'families', familyId), { updatedAt: serverTimestamp() }, { merge: true })
+}
+
+function stripChildForFirestore(child) {
+  const copy = { ...child }
+  delete copy.avatar
+  return copy
 }
 
 async function saveCollection(familyId, collectionName, docs) {
