@@ -7,22 +7,22 @@ const cssPath = path.join(process.cwd(), 'src', 'styles.css')
 let main = fs.readFileSync(mainPath, 'utf8')
 let css = fs.readFileSync(cssPath, 'utf8')
 
-function replaceAll(from, to) {
-  main = main.split(from).join(to)
+function replaceRegex(regex, replacement) {
+  main = main.replace(regex, replacement)
 }
 
-replaceAll(
-  `<label className="field small-field"><span>Ícone</span><input value={form.icon} maxLength={2} onChange={(event) => setForm({ ...form, icon: event.target.value })} /></label>`,
+replaceRegex(
+  /<label className="field small-field"><span>Ícone<\/span><input value=\{form\.icon\}[\s\S]*?<\/label>/g,
   `<EmojiPicker value={form.icon} onChange={(icon) => setForm({ ...form, icon })} />`
 )
 
-replaceAll(
-  `<label className="field small-field"><span>Ícone</span><input value={activity.icon} maxLength={2} onChange={(event) => onUpdateActivity(activity.id, { icon: event.target.value })} /></label>`,
+replaceRegex(
+  /<label className="field small-field"><span>Ícone<\/span><input value=\{activity\.icon\}[\s\S]*?<\/label>/g,
   `<EmojiPicker value={activity.icon} onChange={(icon) => onUpdateActivity(activity.id, { icon })} />`
 )
 
-replaceAll(
-  `<label className="field small-field"><span>Ícone</span><input value={reward.icon} maxLength={2} onChange={(event) => onUpdateReward(reward.id, { icon: event.target.value })} /></label>`,
+replaceRegex(
+  /<label className="field small-field"><span>Ícone<\/span><input value=\{reward\.icon\}[\s\S]*?<\/label>/g,
   `<EmojiPicker value={reward.icon} onChange={(icon) => onUpdateReward(reward.id, { icon })} />`
 )
 
