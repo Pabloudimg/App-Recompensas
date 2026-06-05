@@ -117,27 +117,22 @@ export async function listSentFamilyInvites(familyId) {
 }
 
 export async function listPendingInvitesForEmail(email) {
-  const originalEmail = String(email || '').trim()
-  const cleanEmail = originalEmail.toLowerCase()
+  const cleanEmail = String(email || '').trim().toLowerCase()
   if (!cleanEmail) return []
 
   const byId = new Map()
   const queries = [
-    query(collection(db, 'familyInvites'), where('email', '==', cleanEmail), where('status', '==', 'pendente')),
-    query(collection(db, 'familyInvites'), where('emailLower', '==', cleanEmail), where('status', '==', 'pendente'))
+    query(collection(db, 'familyInvites'), where('email', '==', cleanEmail)),
+    query(collection(db, 'familyInvites'), where('emailLower', '==', cleanEmail))
   ]
 
-  if (originalEmail && originalEmail !== cleanEmail) {
-    queries.push(query(collection(db, 'familyInvites'), where('email', '==', originalEmail), where('status', '==', 'pendente')))
-  }
-
-  try {
-    for (const inviteQuery of queries) {
+  for (const inviteQuery of queries) {
+    try {
       const snapshot = await getDocs(inviteQuery)
       snapshot.docs.forEach((item) => byId.set(item.id, { id: item.id, ...item.data() }))
+    } catch (error) {
+      console.warn('Não foi possível executar uma das buscas de convites pendentes.', error)
     }
-  } catch (error) {
-    console.warn('Não foi possível listar convites pendentes para o e-mail logado.', error)
   }
 
   return Array.from(byId.values()).filter((invite) => invite.status === 'pendente')
@@ -349,7 +344,7 @@ function redemptionsToMap(docs) {
     if (!item.weekKey || !item.childId || !item.rewardId) return map
     if (!map[item.weekKey]) map[item.weekKey] = {}
     if (!map[item.weekKey][item.childId]) map[item.weekKey][item.childId] = {}
-    map[item.weekKey][item.childId][item.rewardId] = true
+    map[item.weekKey][childId][item.rewardId] = true
     return map
   }, {})
 }
