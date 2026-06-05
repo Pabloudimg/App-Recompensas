@@ -2,28 +2,133 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Verifica se existe um usuário autenticado pelo Firebase Auth.
     function signedIn() {
       return request.auth != null;
     }
 
-    // REGRAS TEMPORÁRIAS DE DESENVOLVIMENTO
-    // Objetivo: isolar se o travamento está vindo das regras do Firestore.
-    // Depois que o fluxo de login/família/convites estabilizar, vamos voltar para regras restritivas por família.
+    // Garante que o usuário só leia/escreva o próprio perfil.
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
 
+    // Referência ao documento principal da família.
+    function familyDoc(familyId) {
+      return /databases/$(database)/documents/families/$(familyId);
+    }
+
+    // Referência ao documento de membro do usuário logado dentro de uma família.
+    function memberDoc(familyId) {
+      return /databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid);
+    }
+
+    // Usado na criação da família: o ownerUid informado precisa ser o UID logado.
+    function isOwnerByRequest() {
+      return signedIn() && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Verifica se o usuário logado é o dono da família.
+    function isOwner(familyId) {
+      return signedIn()
+        && exists(familyDoc(familyId))
+        && get(familyDoc(familyId)).data.ownerUid == request.auth.uid;
+    }
+
+    // Verifica se o usuário logado já está cadastrado como membro da família.
+    function isMember(familyId) {
+      return signedIn() && exists(memberDoc(familyId));
+    }
+
+    // Verifica se o documento de convite pertence ao e-mail autenticado e ainda está pendente.
+    function isInviteRecipient() {
+      return signedIn()
+        && resource.data.email == request.auth.token.email
+        && resource.data.status == 'pendente';
+    }
+
+    // Permite criar o documento de membro quando o usuário aceitou convite válido.
+    // O app grava inviteId no membro, e a regra confere se o convite existe,
+    // pertence à família correta, pertence ao e-mail logado e ainda está pendente.
+    function acceptedByInvite(familyId) {
+      return signedIn()
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.inviteId is string
+        && exists(/databases/$(database)/documents/familyInvites/$(request.resource.data.inviteId))
+        && get(/databases/$(database)/documents/familyInvites/$(request.resource.data.inviteId)).data.familyId == familyId
+        && get(/databases/$(database)/documents/familyInvites/$(request.resource.data.inviteId)).data.email == request.auth.token.email
+        && get(/databases/$(database)/documents/familyInvites/$(request.resource.data.inviteId)).data.status == 'pendente';
+    }
+
+    // Perfil do usuário logado.
+    // Guarda selectedFamilyId e relacionamento do usuário.
     match /userProfiles/{userId} {
-      allow read, create, update: if signedIn() && request.auth.uid == userId;
+      allow read, create, update: if isSelf(userId);
       allow delete: if false;
     }
 
+    // Convites para entrar em uma família.
+    // Membros da família podem criar/listar/remover convites.
+    // O destinatário pode ler e aceitar apenas o convite enviado ao próprio e-mail.
     match /familyInvites/{inviteId} {
-      allow read, write: if signedIn();
+      allow create: if signedIn() && isMember(request.resource.data.familyId);
+      allow read: if signedIn()
+        && (isMember(resource.data.familyId) || resource.data.email == request.auth.token.email);
+      allow update: if signedIn()
+        && (isMember(resource.data.familyId) || isInviteRecipient());
+      allow delete: if signedIn()
+        && isMember(resource.data.familyId)
+        && resource.data.status == 'pendente';
     }
 
+    // Documento principal da família.
+    // Apenas o dono cria a família. Depois, dono e membros podem ler/atualizar.
     match /families/{familyId} {
-      allow read, write: if signedIn();
+      allow create: if isOwnerByRequest();
+      allow read, update: if isOwner(familyId) || isMember(familyId);
+      allow delete: if isOwner(familyId);
 
-      match /{document=**} {
-        allow read, write: if signedIn();
+      // Membros/responsáveis da família.
+      // O dono pode administrar. O convidado pode criar o próprio membership por convite válido.
+      match /members/{userId} {
+        allow read: if isOwner(familyId) || isMember(familyId);
+        allow create: if isOwner(familyId) || acceptedByInvite(familyId) || isSelf(userId);
+        allow update: if isOwner(familyId) || isSelf(userId);
+        allow delete: if isOwner(familyId);
+      }
+
+      // Crianças cadastradas na família.
+      match /children/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      // Atividades cadastradas na família.
+      match /activities/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      // Prêmios cadastrados na família.
+      match /rewards/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      // Marcações diárias por data/criança/atividade.
+      match /dailyRecords/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      // Observações diárias por data/criança.
+      match /dailyNotes/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      // Prêmios resgatados na semana.
+      match /weeklyRedemptions/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
+      }
+
+      // Estrelas/moedas transferidas para a semana seguinte.
+      match /weeklyTransfers/{docId} {
+        allow read, write: if isOwner(familyId) || isMember(familyId);
       }
     }
   }
