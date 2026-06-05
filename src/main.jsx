@@ -9,8 +9,8 @@ const SAVE_DELAY_MS = 900
 
 const defaultData = {
   children: [
-    { id: 'malu', name: 'Malu', age: 9, birthDate: '', avatar: '🦄', photo: '', theme: 'purple' },
-    { id: 'miguel', name: 'Miguel', age: 6, birthDate: '', avatar: '🚀', photo: '', theme: 'blue' }
+    { id: 'malu', name: 'Malu', age: 9, birthDate: '', avatar: '🦄', photo: 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%20120%22%3E%3Crect%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2234%22%20fill%3D%22%237c3aed%22%2F%3E%3Ccircle%20cx%3D%2292%22%20cy%3D%2224%22%20r%3D%2218%22%20fill%3D%22rgba(255%2C255%2C255%2C.22)%22%2F%3E%3Ctext%20x%3D%2260%22%20y%3D%2274%22%20text-anchor%3D%22middle%22%20font-size%3D%2252%22%3E%F0%9F%A6%84%3C%2Ftext%3E%3C%2Fsvg%3E', theme: 'purple' },
+    { id: 'miguel', name: 'Miguel', age: 6, birthDate: '', avatar: '🚀', photo: 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20120%20120%22%3E%3Crect%20width%3D%22120%22%20height%3D%22120%22%20rx%3D%2234%22%20fill%3D%22%23f59e0b%22%2F%3E%3Ccircle%20cx%3D%2292%22%20cy%3D%2224%22%20r%3D%2218%22%20fill%3D%22rgba(255%2C255%2C255%2C.22)%22%2F%3E%3Ctext%20x%3D%2260%22%20y%3D%2274%22%20text-anchor%3D%22middle%22%20font-size%3D%2252%22%3E%F0%9F%90%AF%3C%2Ftext%3E%3C%2Fsvg%3E', theme: 'blue' }
   ],
   activities: [
     { id: 'escola', title: 'Preparação para escola', points: 1, active: true, icon: '🎒', order: 1, assignedChildIds: ['malu', 'miguel'] },
