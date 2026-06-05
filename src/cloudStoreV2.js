@@ -11,22 +11,28 @@ export async function ensureFamilyForUser(user) {
 
   const profile = profileSnap.data()
   const familyId = profile.selectedFamilyId
-  const familyRef = doc(db, 'families', familyId)
-  const familySnap = await getDoc(familyRef)
-  if (!familySnap.exists()) return null
 
-  const memberRef = doc(db, 'families', familyId, 'members', user.uid)
-  const memberSnap = await getDoc(memberRef)
-  const memberData = memberSnap.exists() ? memberSnap.data() : {}
-  const member = buildMember({
-    user,
-    role: memberData.role || profile.role || 'owner',
-    relationship: memberData.relationship || profile.relationship || '',
-    inviteId: memberData.inviteId || ''
-  })
-  await setDoc(memberRef, member, { merge: true })
+  try {
+    const familyRef = doc(db, 'families', familyId)
+    const familySnap = await getDoc(familyRef)
+    if (!familySnap.exists()) return null
 
-  return { family: { id: familyId, ...familySnap.data() }, member }
+    const memberRef = doc(db, 'families', familyId, 'members', user.uid)
+    const memberSnap = await getDoc(memberRef)
+    const memberData = memberSnap.exists() ? memberSnap.data() : {}
+    const member = buildMember({
+      user,
+      role: memberData.role || profile.role || 'owner',
+      relationship: memberData.relationship || profile.relationship || '',
+      inviteId: memberData.inviteId || ''
+    })
+    await setDoc(memberRef, member, { merge: true })
+
+    return { family: { id: familyId, ...familySnap.data() }, member }
+  } catch (error) {
+    console.warn('Perfil apontava para uma família inexistente ou sem permissão. O app seguirá para criação/convite de família.', error)
+    return null
+  }
 }
 
 export async function createFamilyForUser(user, { familyName, relationship }) {
