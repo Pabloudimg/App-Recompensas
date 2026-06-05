@@ -18,7 +18,12 @@ export async function ensureFamilyForUser(user) {
   const memberRef = doc(db, 'families', familyId, 'members', user.uid)
   const memberSnap = await getDoc(memberRef)
   const memberData = memberSnap.exists() ? memberSnap.data() : {}
-  const member = buildMember(user, memberData.role || profile.role || 'owner', memberData.relationship || profile.relationship || '')
+  const member = buildMember({
+    user,
+    role: memberData.role || profile.role || 'owner',
+    relationship: memberData.relationship || profile.relationship || '',
+    inviteId: memberData.inviteId || ''
+  })
   await setDoc(memberRef, member, { merge: true })
 
   return { family: { id: familyId, ...familySnap.data() }, member }
@@ -30,7 +35,7 @@ export async function createFamilyForUser(user, { familyName, relationship }) {
   if (!cleanFamilyName || !cleanRelationship) throw new Error('Dados obrigatórios da família ausentes.')
 
   const familyId = `family_${user.uid}`
-  const member = buildMember(user, 'owner', cleanRelationship)
+  const member = buildMember({ user, role: 'owner', relationship: cleanRelationship })
 
   await setDoc(doc(db, 'families', familyId), {
     name: cleanFamilyName,
@@ -102,7 +107,11 @@ export async function acceptFamilyInvite(user, inviteId, relationship) {
   const invite = inviteSnap.data()
   const chosenRelationship = String(relationship || invite.relationship || '').trim()
 
-  await setDoc(doc(db, 'families', invite.familyId, 'members', user.uid), buildMember(user, 'admin', chosenRelationship), { merge: true })
+  if (String(invite.email || '').toLowerCase() !== String(user.email || '').toLowerCase()) {
+    throw new Error('Este convite pertence a outro e-mail.')
+  }
+
+  await setDoc(doc(db, 'families', invite.familyId, 'members', user.uid), buildMember({ user, role: 'admin', relationship: chosenRelationship, inviteId }), { merge: true })
   await setDoc(doc(db, 'userProfiles', user.uid), {
     uid: user.uid,
     name: user.displayName || '',
@@ -121,13 +130,14 @@ export async function acceptFamilyInvite(user, inviteId, relationship) {
   return { familyId: invite.familyId }
 }
 
-function buildMember(user, role = 'admin', relationship = '') {
+function buildMember({ user, role = 'admin', relationship = '', inviteId = '' }) {
   return {
     uid: user.uid,
     name: user.displayName || '',
     email: user.email || '',
     role,
     relationship,
+    inviteId,
     updatedAt: serverTimestamp()
   }
 }
