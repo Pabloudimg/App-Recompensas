@@ -84,6 +84,7 @@ export async function createFamilyInvite({ family, user, email, relationship }) 
     familyId: family.id,
     familyName: family.name || 'Família',
     email: cleanEmail,
+    emailLower: cleanEmail,
     relationship: cleanRelationship,
     status: 'pendente',
     invitedByUid: user.uid,
@@ -109,20 +110,37 @@ export async function listSentFamilyInvites(familyId) {
   try {
     const snapshot = await getDocs(query(collection(db, 'familyInvites'), where('familyId', '==', familyId)))
     return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
-  } catch {
+  } catch (error) {
+    console.warn('Não foi possível listar convites enviados.', error)
     return []
   }
 }
 
 export async function listPendingInvitesForEmail(email) {
-  const cleanEmail = String(email || '').trim().toLowerCase()
+  const originalEmail = String(email || '').trim()
+  const cleanEmail = originalEmail.toLowerCase()
   if (!cleanEmail) return []
-  try {
-    const snapshot = await getDocs(query(collection(db, 'familyInvites'), where('email', '==', cleanEmail)))
-    return snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter((invite) => invite.status === 'pendente')
-  } catch {
-    return []
+
+  const byId = new Map()
+  const queries = [
+    query(collection(db, 'familyInvites'), where('email', '==', cleanEmail), where('status', '==', 'pendente')),
+    query(collection(db, 'familyInvites'), where('emailLower', '==', cleanEmail), where('status', '==', 'pendente'))
+  ]
+
+  if (originalEmail && originalEmail !== cleanEmail) {
+    queries.push(query(collection(db, 'familyInvites'), where('email', '==', originalEmail), where('status', '==', 'pendente')))
   }
+
+  try {
+    for (const inviteQuery of queries) {
+      const snapshot = await getDocs(inviteQuery)
+      snapshot.docs.forEach((item) => byId.set(item.id, { id: item.id, ...item.data() }))
+    }
+  } catch (error) {
+    console.warn('Não foi possível listar convites pendentes para o e-mail logado.', error)
+  }
+
+  return Array.from(byId.values()).filter((invite) => invite.status === 'pendente')
 }
 
 export async function acceptFamilyInvite(user, inviteId, relationship) {
@@ -131,8 +149,9 @@ export async function acceptFamilyInvite(user, inviteId, relationship) {
   if (!inviteSnap.exists()) throw new Error('Convite não encontrado.')
   const invite = inviteSnap.data()
   const chosenRelationship = String(invite.relationship || relationship || '').trim()
+  const userEmail = String(user.email || '').toLowerCase()
 
-  if (String(invite.email || '').toLowerCase() !== String(user.email || '').toLowerCase()) {
+  if (String(invite.email || invite.emailLower || '').toLowerCase() !== userEmail) {
     throw new Error('Este convite pertence a outro e-mail.')
   }
 
