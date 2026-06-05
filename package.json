@@ -1,10 +1,10 @@
 {
   "name": "app-recompensas",
   "private": true,
-  "version": "0.3.5",
+  "version": "0.3.6",
   "type": "module",
   "scripts": {
-    "prepare:ui": "node scripts/apply-family-ui.cjs && node scripts/fix-login-invites.cjs && node scripts/apply-day-ui.cjs && node scripts/apply-emoji-picker.cjs",
+    "prepare:ui": "node scripts/apply-family-ui.cjs && node scripts/apply-day-ui.cjs && node scripts/apply-emoji-picker.cjs",
     "dev": "npm run prepare:ui && vite --host 0.0.0.0",
     "build": "npm run prepare:ui && vite build",
     "preview": "vite preview"
