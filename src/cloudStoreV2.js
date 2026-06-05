@@ -1,6 +1,6 @@
 import { db } from './firebase'
 import { subscribeToAuth, signInWithGoogle, signOut, loadFamilyData, saveFamilyData } from './cloudStore'
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 
 export { subscribeToAuth, signInWithGoogle, signOut, loadFamilyData, saveFamilyData }
 
@@ -79,6 +79,15 @@ export async function createFamilyInvite({ family, user, email, relationship }) 
   return invite
 }
 
+export async function removePendingFamilyInvite(inviteId) {
+  const inviteRef = doc(db, 'familyInvites', inviteId)
+  const inviteSnap = await getDoc(inviteRef)
+  if (!inviteSnap.exists()) return
+  const invite = inviteSnap.data()
+  if (invite.status !== 'pendente') throw new Error('Apenas convites pendentes podem ser removidos.')
+  await deleteDoc(inviteRef)
+}
+
 export async function listSentFamilyInvites(familyId) {
   if (!familyId) return []
   try {
@@ -105,7 +114,7 @@ export async function acceptFamilyInvite(user, inviteId, relationship) {
   const inviteSnap = await getDoc(inviteRef)
   if (!inviteSnap.exists()) throw new Error('Convite não encontrado.')
   const invite = inviteSnap.data()
-  const chosenRelationship = String(relationship || invite.relationship || '').trim()
+  const chosenRelationship = String(invite.relationship || relationship || '').trim()
 
   if (String(invite.email || '').toLowerCase() !== String(user.email || '').toLowerCase()) {
     throw new Error('Este convite pertence a outro e-mail.')
