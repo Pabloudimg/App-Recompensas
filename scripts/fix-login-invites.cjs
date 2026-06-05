@@ -4,11 +4,6 @@ const path = require('path')
 const filePath = path.join(process.cwd(), 'src', 'main.jsx')
 let text = fs.readFileSync(filePath, 'utf8')
 
-text = text.replace(
-  "        const invitations = await listPendingInvitesForEmail(currentUser.email)\n        setPendingInvites(invitations)\n",
-  "        setPendingInvites([])\n"
-)
-
 if (!text.includes('function FamilySetupPanel(')) {
   const familySetupPanel = `
 function FamilySetupPanel({ user, loading, error, pendingInvites = [], onAcceptInvite, onCreateFamily, onSignOut }) {
