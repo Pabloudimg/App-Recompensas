@@ -27,7 +27,7 @@ service cloud.firestore {
       return signedIn() && request.resource.data.ownerUid == request.auth.uid;
     }
 
-    // Verifica se o usuário logado é o dono da família.
+    // Verifica se o usuário logado é o dono da família já existente.
     function isOwner(familyId) {
       return signedIn()
         && exists(familyDoc(familyId))
@@ -37,6 +37,18 @@ service cloud.firestore {
     // Verifica se o usuário logado já está cadastrado como membro da família.
     function isMember(familyId) {
       return signedIn() && exists(memberDoc(familyId));
+    }
+
+    // Permite a criação do primeiro membro logo depois da criação da família.
+    // Esse caso acontece quando ainda não existe documento em /members/{uid},
+    // mas o documento da família já existe e tem ownerUid igual ao usuário logado.
+    function isCreatingSelfAsOwner(familyId, userId) {
+      return isSelf(userId)
+        && exists(familyDoc(familyId))
+        && get(familyDoc(familyId)).data.ownerUid == request.auth.uid
+        && request.resource.data.role == 'owner'
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
     }
 
     // Verifica se o documento de convite pertence ao e-mail autenticado e ainda está pendente.
@@ -88,10 +100,11 @@ service cloud.firestore {
       allow delete: if isOwner(familyId);
 
       // Membros/responsáveis da família.
-      // O dono pode administrar. O convidado pode criar o próprio membership por convite válido.
+      // O dono pode administrar. O primeiro owner pode criar o próprio registro.
+      // O convidado pode criar o próprio membership por convite válido.
       match /members/{userId} {
-        allow read: if isOwner(familyId) || isMember(familyId);
-        allow create: if isOwner(familyId) || acceptedByInvite(familyId) || isSelf(userId);
+        allow read: if isOwner(familyId) || isMember(familyId) || isSelf(userId);
+        allow create: if isOwner(familyId) || isCreatingSelfAsOwner(familyId, userId) || acceptedByInvite(familyId);
         allow update: if isOwner(familyId) || isSelf(userId);
         allow delete: if isOwner(familyId);
       }
