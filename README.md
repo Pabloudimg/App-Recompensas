@@ -220,7 +220,6 @@ App-Recompensas/
 │  └─ fix-login-invites.cjs
 ├─ src/
 │  ├─ cloudStore.js
-│  ├─ cloudStoreV2.js
 │  ├─ firebase.js
 │  ├─ logoApp.js
 │  ├─ main.jsx
@@ -236,8 +235,7 @@ App-Recompensas/
 ### Arquivos principais
 
 - `src/main.jsx`: app React, telas, componentes e regras de interface.
-- `src/cloudStore.js`: persistência no Firestore para dados principais da família.
-- `src/cloudStoreV2.js`: autenticação familiar, criação de família, convites e vínculo de membros.
+- `src/cloudStore.js`: camada única de Firebase, incluindo autenticação, criação de família, membros, convites, leitura e gravação dos dados familiares no Firestore.
 - `src/firebase.js`: configuração do Firebase.
 - `src/logoApp.js`: logo compactada em data URI.
 - `src/styles.css`: visual, responsividade, animações, dark mode e mobile.
