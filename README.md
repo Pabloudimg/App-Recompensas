@@ -1,204 +1,231 @@
-# Missões da Semana
+# Level Up
 
-Mini app familiar criado para acompanhar as atividades diárias da **Malu** e do **Miguel**, transformar combinados em missões simples e usar estrelas/moedas como base para prêmios no fim de semana.
+App familiar gamificado para acompanhar rotinas diárias de crianças, registrar conquistas, acumular estrelas/moedas e trocar o saldo por prêmios definidos pela família.
 
-A ideia do projeto é funcionar como um quadro de rotina gamificado: durante a semana, os responsáveis marcam as atividades como concluídas ou não; no fim da semana, o app mostra o saldo disponível para resgatar prêmios ou acumular moedas para a próxima semana.
+O projeto nasceu como uma agenda de atividades para Malu e Miguel, mas evoluiu para um app multiusuário com login Google, família compartilhada, banco em nuvem no Firebase e convites para responsáveis.
 
 ## Link publicado
 
-Quando o GitHub Actions terminar o deploy com sucesso, o app fica disponível em:
-
 ```text
-https://pabloudimg.github.io/Malu_Miguel/
+https://pabloudimg.github.io/App-Recompensas/
 ```
 
-## Contexto do projeto
+## Cenário atual do projeto
 
-Este app começou como uma primeira versão simples para testar a rotina familiar antes de evoluir para algo com banco de dados ou login.
+A versão atual contempla:
 
-A versão atual já deixou de ser apenas um checklist diário e passou a ter uma lógica mais completa de acompanhamento semanal:
-
-- cadastro e edição de atividades;
+- login com Google via Firebase Authentication;
+- criação de conta/família no primeiro acesso;
+- cadastro de responsáveis por família;
+- convites por e-mail para outro responsável entrar na mesma família;
+- regras restritivas no Firestore por família e por membro;
+- cadastro de crianças com nome, data de nascimento, idade automática, tema visual e foto;
+- cadastro de atividades com estrelas, ordem, status ativo e associação por criança;
+- cadastro de prêmios com custo em estrelas/moedas;
+- seletor visual de emoticons para atividades e prêmios;
 - marcação diária por criança;
-- cálculo de estrelas acumuladas;
+- resumo semanal com saldo, prêmios resgatados e transferência de moedas;
 - modo claro/escuro;
-- fotos personalizadas para Malu e Miguel;
-- animações visuais no uso diário;
-- prêmios configuráveis;
-- resgate de prêmios com abatimento do saldo;
-- transferência de moedas para a semana seguinte;
-- backup e importação de dados.
+- layout responsivo com foco em uso mobile;
+- backup local em `localStorage` e sincronização em nuvem no Firestore.
 
-## Crianças cadastradas inicialmente
+## Fluxo principal
 
-O app vem com dois perfis iniciais:
+1. O usuário entra com Google.
+2. O app verifica se existe `userProfiles/{uid}`.
+3. Se não houver família válida, mostra a tela de criação de família.
+4. Ao criar a família, o app cria o documento da família e o primeiro membro `owner`.
+5. O app carrega crianças, atividades, prêmios, marcações, resgates e transferências do Firestore.
+6. As alterações feitas no app são salvas localmente e sincronizadas com a nuvem.
 
-- **Malu**, 9 anos;
-- **Miguel**, 6 anos.
+## Famílias e responsáveis
 
-Cada perfil pode ter uma foto personalizada. A foto é selecionada diretamente no app e fica salva no navegador usado.
+A estrutura do app foi pensada para que pai, mãe ou outro responsável acessem a mesma base familiar.
 
-## Atividades iniciais
+Na criação da família, o usuário informa:
 
-As atividades configuradas inicialmente são:
+- nome da família;
+- parentesco do usuário logado.
 
-- Preparação para escola;
-- Andar no carro de cinto;
-- Fazer as refeições do dia;
-- Escovar os dentes;
-- Resolver conflitos sem bater/brigar.
+Depois, em **Cadastros > Convites**, um membro da família pode convidar outro e-mail Google. O convite registra:
 
-Na aba **Atividades**, é possível:
+- e-mail convidado;
+- família vinculada;
+- responsável remetente;
+- parentesco do convidado;
+- status `pendente` ou `aceito`.
 
-- cadastrar novas atividades;
-- editar ícone, descrição, estrelas e ordem;
-- definir se uma atividade está ativa;
-- reorganizar a posição com campo de ordem ou botões de seta;
-- limitar estrelas e ordem entre `0` e `99`.
+Enquanto o convite estiver `pendente`, ele pode ser removido pelo remetente. Depois de aceito, ele não deve ser removido pela tela, pois já foi utilizado para criar vínculo com a família.
 
-A ordem definida nessa tela controla como as atividades aparecem na aba **Hoje**.
+## Crianças
 
-## Marcação diária
+Em **Cadastros > Crianças**, é possível cadastrar e editar:
 
-Na aba **Hoje**, cada atividade pode receber uma das marcações:
+- nome;
+- data de nascimento;
+- tema/cor;
+- foto.
 
-- 👍 **OK**;
-- 👎 **Não OK**;
-- 😐 **N/A**.
+A idade é calculada automaticamente com base na data de nascimento.
 
-Regras da marcação:
+### Fotos das crianças
+
+Ao trocar a foto, o app:
+
+1. lê a imagem no navegador;
+2. redimensiona a imagem usando `canvas`;
+3. limita o maior lado a aproximadamente `520px`;
+4. exporta como JPEG em qualidade `0.82`;
+5. salva o resultado como base64 no campo `photo` da criança.
+
+Para esta fase, esse modelo é suficiente. Em uma evolução futura, o ideal é mover fotos para Firebase Storage e salvar no Firestore apenas a URL.
+
+## Atividades
+
+Em **Cadastros > Atividades**, é possível configurar:
+
+- ícone por seletor de emoticons;
+- descrição;
+- estrelas concedidas;
+- ordem de exibição;
+- crianças associadas;
+- status ativo/inativo.
+
+A aba **Dia** exibe somente as atividades ativas associadas à criança selecionada.
+
+## Prêmios
+
+Em **Cadastros > Prêmios**, é possível configurar:
+
+- ícone por seletor de emoticons;
+- nome do prêmio;
+- custo em estrelas/moedas.
+
+Os custos são limitados entre `0` e `99`.
+
+## Aba Dia
+
+A aba **Dia** substitui a antiga aba Hoje.
+
+Ela abre por padrão na data atual e permite:
+
+- voltar um dia;
+- avançar um dia;
+- escolher uma data pelo calendário;
+- marcar atividades como 👍 OK, 👎 Não OK ou 😐 N/A;
+- desmarcar uma opção clicando nela novamente;
+- registrar observações do dia.
+
+Regras da pontuação diária:
 
 - 👍 OK soma as estrelas da atividade;
 - 👎 Não OK não soma estrelas;
-- 😐 N/A remove a atividade da conta do dia;
-- clicar novamente em uma opção já marcada desmarca a atividade;
-- ao marcar 👍 aparece uma animação com carinha feliz;
-- ao marcar 👎 aparece uma animação com carinha triste.
+- 😐 N/A remove a atividade da contagem do dia.
 
-Também existe um campo de **observações do dia** para registrar comentários importantes.
+## Aba Semana
 
-## Semana, moedas e prêmios
+A aba **Semana** apresenta o resumo semanal da criança selecionada.
 
-Na aba **Semana**, o app calcula o resumo semanal para cada criança.
+O card mostra:
 
-Cada card mostra:
+- estrelas obtidas na semana;
+- estrelas transferidas de semanas anteriores;
+- estrelas utilizadas em prêmios e transferências;
+- estrelas disponíveis.
 
-- percentual de conclusão da semana;
-- ⭐ estrelas acumuladas na semana;
-- ↔️ estrelas transferidas de semanas anteriores;
-- 🏆 estrelas utilizadas em prêmios;
-- 🧾 saldo de moedas disponíveis.
-
-A fórmula do saldo é:
+A fórmula do saldo disponível é:
 
 ```text
-moedas disponíveis = estrelas acumuladas + estrelas transferidas - estrelas utilizadas
+estrelas disponíveis = estrelas obtidas + estrelas transferidas - estrelas utilizadas
 ```
 
 ### Resgate de prêmios
 
-Cada prêmio tem um custo em moedas/estrelas.
+Na semana, o usuário pode marcar prêmios como resgatados. O app só permite o resgate quando existe saldo suficiente.
 
-Na aba **Semana**, dentro do card de cada criança, aparece a lista de **Prêmios possíveis**.
-
-Regras de resgate:
-
-- é possível resgatar mais de um prêmio na mesma semana;
-- o app só permite resgatar se houver saldo suficiente;
-- ao resgatar, o prêmio fica marcado como **Resgatado**;
-- clicar novamente em um prêmio resgatado cancela o resgate e devolve as moedas;
-- o total usado aparece na linha 🏆 estrelas utilizadas.
+Se o prêmio for clicado novamente, ele é desmarcado e o saldo volta a ficar disponível.
 
 ### Acumular moedas
 
-Além dos prêmios cadastrados, existe sempre uma opção fixa no final da lista:
+A opção fixa **Acumular moedas** transfere o saldo disponível da semana atual para a semana seguinte.
 
-- 🪙 **Acumular moedas**.
+Isso evita perder estrelas quando o saldo acumulado ainda não é suficiente para um prêmio maior.
 
-Essa opção transfere o saldo disponível daquela semana para a semana seguinte.
+## Armazenamento e banco em nuvem
 
-Ela serve para evitar que as crianças percam estrelas quando o saldo da semana não for suficiente para um prêmio maior.
+O app usa Firestore como banco em nuvem e `localStorage` como apoio local.
 
-Exemplo:
+### Coleções principais
 
 ```text
-Semana atual:
-20 estrelas acumuladas
-0 transferidas
-0 utilizadas
-20 moedas disponíveis
-
-Ao clicar em Acumular moedas:
-20 moedas são levadas para a próxima semana
+userProfiles/{uid}
+families/{familyId}
+families/{familyId}/members/{uid}
+families/{familyId}/children/{childId}
+families/{familyId}/activities/{activityId}
+families/{familyId}/rewards/{rewardId}
+families/{familyId}/dailyRecords/{date_childId_activityId}
+families/{familyId}/dailyNotes/{date_childId}
+families/{familyId}/weeklyRedemptions/{weekKey_childId_rewardId}
+families/{familyId}/weeklyTransfers/{weekKey_childId}
+familyInvites/{inviteId}
 ```
 
-Na semana seguinte, essas moedas aparecem como ↔️ estrelas transferidas.
+### Observações de modelagem
 
-## Aba Prêmios
+- `children` guarda dados cadastrais das crianças e a foto compactada em base64.
+- `activities` guarda atividades e a lista `assignedChildIds`, indicando para quais crianças a atividade se aplica.
+- `rewards` guarda os prêmios configurados.
+- `dailyRecords` guarda uma marcação por data, criança e atividade.
+- `dailyNotes` guarda observações por data e criança.
+- `weeklyRedemptions` guarda prêmios resgatados por semana e criança.
+- `weeklyTransfers` guarda saldo transferido para a semana seguinte.
+- `familyInvites` fica fora de `families` para permitir que o convidado encontre convites pelo próprio e-mail antes de ser membro da família.
 
-A antiga aba **Recompensas** foi renomeada para **Prêmios**.
+## Segurança do Firestore
 
-Nela é possível cadastrar e editar:
-
-- ícone;
-- nome do prêmio;
-- quantidade de estrelas/moedas exigidas.
-
-O valor do prêmio é limitado de `0` a `99`.
-
-## Aparência e uso no celular
-
-O app foi ajustado para uso mobile, principalmente pensando em iPhone 14 Pro Max.
-
-A versão atual inclui:
-
-- layout responsivo;
-- botões maiores para toque;
-- navegação por abas com rolagem horizontal;
-- suporte a área segura do iPhone;
-- cards com efeito hover em telas maiores;
-- animação de abertura;
-- modo claro/escuro.
-
-## Dados e armazenamento
-
-Nesta fase, os dados ficam salvos no próprio navegador usando `localStorage`.
-
-Isso inclui:
-
-- fotos das crianças;
-- atividades;
-- marcações diárias;
-- observações;
-- prêmios;
-- resgates;
-- moedas transferidas.
-
-## Limite importante da versão atual
-
-Os dados ficam salvos apenas no navegador/dispositivo em que o app foi usado.
-
-Se o app for aberto em outro celular, computador ou navegador, os dados não aparecem automaticamente.
-
-Para levar os dados para outro dispositivo:
-
-1. Entre na aba **Dados**.
-2. Clique em **Exportar backup**.
-3. No outro dispositivo, entre na aba **Dados**.
-4. Clique em **Importar backup**.
-
-Uma evolução futura pode usar Firebase ou Supabase para login e sincronização em nuvem.
-
-## Estrutura principal do código
+As regras ficam em:
 
 ```text
-Malu_Miguel/
+firestore.rules
+```
+
+As regras atuais seguem estes princípios:
+
+- cada usuário só acessa o próprio `userProfiles/{uid}`;
+- somente membros ou dono acessam os dados da família;
+- o primeiro `owner` pode criar o próprio registro de membro ao criar a família;
+- membros podem criar e listar convites da própria família;
+- o convidado só consegue ler e aceitar convite enviado ao próprio e-mail;
+- convites pendentes podem ser removidos por membros da família;
+- convites aceitos não são removidos pela tela do app.
+
+Sempre que `firestore.rules` for alterado, é necessário copiar o conteúdo para o Firebase Console e publicar em:
+
+```text
+Firestore Database > Rules > Publish
+```
+
+## Estrutura do repositório
+
+```text
+App-Recompensas/
 ├─ .github/
 │  └─ workflows/
 │     └─ deploy.yml
+├─ scripts/
+│  ├─ apply-family-ui.cjs
+│  ├─ apply-day-ui.cjs
+│  ├─ apply-emoji-picker.cjs
+│  └─ fix-login-invites.cjs
 ├─ src/
+│  ├─ cloudStore.js
+│  ├─ cloudStoreV2.js
+│  ├─ firebase.js
+│  ├─ logoApp.js
 │  ├─ main.jsx
 │  └─ styles.css
+├─ firestore.rules
 ├─ index.html
 ├─ package.json
 ├─ package-lock.json
@@ -206,75 +233,63 @@ Malu_Miguel/
 └─ README.md
 ```
 
-Arquivos principais:
+### Arquivos principais
 
-- `src/main.jsx`: concentra a lógica do app, componentes React, regras de pontuação, prêmios, resgates, transferências e armazenamento local;
-- `src/styles.css`: define o visual, responsividade, dark mode, animações e ajustes mobile;
-- `vite.config.js`: configura o Vite e o caminho correto para publicação no GitHub Pages;
-- `.github/workflows/deploy.yml`: automatiza o build e publicação no GitHub Pages.
+- `src/main.jsx`: app React, telas, componentes e regras de interface.
+- `src/cloudStore.js`: persistência no Firestore para dados principais da família.
+- `src/cloudStoreV2.js`: autenticação familiar, criação de família, convites e vínculo de membros.
+- `src/firebase.js`: configuração do Firebase.
+- `src/logoApp.js`: logo compactada em data URI.
+- `src/styles.css`: visual, responsividade, animações, dark mode e mobile.
+- `firestore.rules`: regras de segurança do Firestore.
+- `scripts/*.cjs`: patches de build usados durante a evolução do app.
 
-## Como rodar localmente
-
-É necessário ter Node.js instalado.
+## Scripts de desenvolvimento
 
 ```bash
 npm install
 npm run dev
 ```
 
-Depois, abra o endereço mostrado no terminal.
-
-## Como gerar a versão de produção
+O script `dev` executa `prepare:ui` antes de iniciar o Vite.
 
 ```bash
 npm run build
 npm run preview
 ```
 
-O comando `npm run build` gera a pasta `dist/`, que é a versão final do app para publicação.
+O script `build` também executa `prepare:ui` antes do build de produção.
 
-## Como publicar no GitHub Pages
+## Publicação no GitHub Pages
 
-O projeto já possui um workflow em:
+O deploy está automatizado por GitHub Actions em:
 
 ```text
 .github/workflows/deploy.yml
 ```
 
-Fluxo de publicação:
+Fluxo:
 
-1. Fazer alteração no código.
-2. Enviar para a branch `main`.
-3. O GitHub Actions roda automaticamente.
-4. Ele instala as dependências.
-5. Ele gera o build com Vite.
-6. Ele publica a pasta `dist/` no GitHub Pages.
-
-Para conferir o deploy:
-
-1. Abra o repositório no GitHub.
-2. Entre na aba **Actions**.
-3. Aguarde o workflow ficar verde.
-4. Acesse o link publicado.
+1. push na branch `main`;
+2. instalação das dependências;
+3. build com Vite;
+4. publicação da pasta `dist` no GitHub Pages.
 
 ## Tecnologias usadas
 
 - React;
 - Vite;
-- CSS puro;
-- localStorage;
+- Firebase Authentication;
+- Cloud Firestore;
 - GitHub Pages;
-- GitHub Actions.
+- GitHub Actions;
+- CSS responsivo sem framework externo.
 
-## Ideias para próximas versões
+## Pontos de melhoria futura
 
-- Login dos pais;
-- sincronização entre dispositivos;
-- banco de dados em nuvem;
-- histórico mensal;
-- regras diferentes por criança;
-- atividades por dia da semana;
-- relatórios simples para conversa no domingo;
-- área infantil somente para visualização;
-- instalação como PWA na tela inicial do iPhone;
-- confirmação com senha para editar atividades, prêmios ou dados.
+- Consolidar os patches de `scripts/` diretamente no código-fonte para simplificar manutenção.
+- Migrar fotos das crianças para Firebase Storage.
+- Adicionar tela de administração de membros da família.
+- Permitir edição do nome da família.
+- Adicionar testes automatizados para regras de cálculo semanal.
+- Criar logs ou histórico de alterações importantes.
