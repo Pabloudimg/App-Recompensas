@@ -15,7 +15,6 @@ if (!main.includes('const weekDayOptions')) {
   )
 }
 
-// Default para atividades padrão do código.
 main = main.replace(/(\{ id: '[^']+', title: '[^']+', points: \d+, active: true, icon: '[^']+', order: \d+, assignedChildIds: \['malu', 'miguel'\])( \})/g, `$1, weekdays: ${allWeekdays}$2`)
 
 main = main.replace(
@@ -51,7 +50,12 @@ main = main.replace(
 if (!main.includes('function WeekdayMultiSelect(')) {
   main = main.replace(
     "function ChildMultiSelect({ children, selectedIds, onChange }) {",
-    "function WeekdayMultiSelect({ selectedDays, onChange }) {\n  const selected = normalizeWeekdays(selectedDays)\n  function toggle(dayValue) {\n    const next = selected.includes(dayValue) ? selected.filter((value) => value !== dayValue) : [...selected, dayValue]\n    onChange(next.length ? next : allWeekdayValues)\n  }\n  return <div className=\"field weekday-multiselect\"><span>Dias</span><div>{weekDayOptions.map(([value, label]) => <label key={value}><input type=\"checkbox\" checked={selected.includes(value)} onChange={() => toggle(value)} /><strong>{label}</strong></label>)}</div></div>\n}\n\nfunction ChildMultiSelect({ children, selectedIds, onChange }) {"
+    "function WeekdayMultiSelect({ selectedDays, onChange }) {\n  const selected = normalizeWeekdays(selectedDays)\n  function toggle(dayValue) {\n    const next = selected.includes(dayValue) ? selected.filter((value) => value !== dayValue) : [...selected, dayValue]\n    onChange(next.length ? next : allWeekdayValues)\n  }\n  return <div className=\"field weekday-multiselect\"><span>Dias</span><div>{weekDayOptions.map(([value, label]) => <button type=\"button\" key={value} className={selected.includes(value) ? 'is-selected' : ''} onClick={() => toggle(value)} aria-pressed={selected.includes(value)}>{label}</button>)}</div></div>\n}\n\nfunction ChildMultiSelect({ children, selectedIds, onChange }) {"
+  )
+} else {
+  main = main.replace(
+    "return <div className=\"field weekday-multiselect\"><span>Dias</span><div>{weekDayOptions.map(([value, label]) => <label key={value}><input type=\"checkbox\" checked={selected.includes(value)} onChange={() => toggle(value)} /><strong>{label}</strong></label>)}</div></div>",
+    "return <div className=\"field weekday-multiselect\"><span>Dias</span><div>{weekDayOptions.map(([value, label]) => <button type=\"button\" key={value} className={selected.includes(value) ? 'is-selected' : ''} onClick={() => toggle(value)} aria-pressed={selected.includes(value)}>{label}</button>)}</div></div>"
   )
 }
 
@@ -108,14 +112,19 @@ main = main.replace(
 const cssAdd = `
 
 /* Seleção de dias da semana nas atividades */
-.weekday-multiselect > div { display: flex; flex-wrap: wrap; gap: 6px; }
-.weekday-multiselect label { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 9px; border: 1px solid rgba(124, 58, 237, .16); border-radius: 999px; background: rgba(124, 58, 237, .07); cursor: pointer; }
-.weekday-multiselect input { accent-color: var(--purple); }
-.weekday-multiselect strong { font-size: .78rem; }
-.activities-form .weekday-multiselect, .activities-settings .weekday-multiselect { min-width: min(100%, 250px); }
-@media (max-width: 720px) { .weekday-multiselect > div { gap: 5px; } .weekday-multiselect label { padding: 0 8px; } }
+.weekday-multiselect > div { display: grid; grid-template-columns: repeat(7, minmax(38px, 1fr)); gap: 6px; }
+.weekday-multiselect button { min-height: 36px; padding: 0 6px; border: 1px solid rgba(124, 58, 237, .18); border-radius: 999px; background: rgba(124, 58, 237, .07); color: var(--ink); font-size: .76rem; font-weight: 950; line-height: 1; cursor: pointer; transition: transform .14s ease, background .14s ease, border-color .14s ease; }
+.weekday-multiselect button.is-selected { border-color: transparent; background: linear-gradient(135deg, #7c3aed, #06b6d4); color: #fff; box-shadow: 0 8px 18px rgba(124, 58, 237, .18); }
+.weekday-multiselect button:active { transform: scale(.96); }
+.activities-form .weekday-multiselect, .activities-settings .weekday-multiselect { min-width: min(100%, 310px); }
+.activities-form { align-items: end; }
+.activities-settings article { align-items: end; }
+@media (max-width: 720px) { .weekday-multiselect > div { grid-template-columns: repeat(4, minmax(46px, 1fr)); gap: 6px; } .weekday-multiselect button { min-height: 38px; font-size: .74rem; padding: 0 4px; } }
 `
 if (!css.includes('Seleção de dias da semana nas atividades')) css = css.trimEnd() + cssAdd
+else {
+  css = css.replace(/\/\* Seleção de dias da semana nas atividades \*\/[\s\S]*?(?=\/\* Feedback visual ao adicionar cadastros \*\/|$)/, cssAdd.trim() + '\n')
+}
 
 fs.writeFileSync(mainPath, main, 'utf8')
 fs.writeFileSync(cssPath, css, 'utf8')
