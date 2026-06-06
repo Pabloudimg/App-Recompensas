@@ -1,10 +1,10 @@
 {
   "name": "app-recompensas",
   "private": true,
-  "version": "0.3.9",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
-    "prepare:ui": "node scripts/apply-family-ui.cjs && node scripts/apply-day-ui.cjs && node scripts/apply-emoji-picker.cjs && node scripts/apply-default-birthdates.cjs && node scripts/apply-cloudstore-fixes.cjs && node scripts/apply-invite-inbox.cjs",
+    "prepare:ui": "node scripts/apply-family-ui.cjs && node scripts/apply-day-ui.cjs && node scripts/apply-emoji-picker.cjs && node scripts/apply-default-birthdates.cjs && node scripts/apply-cloudstore-fixes.cjs && node scripts/apply-invite-inbox.cjs && node scripts/apply-activity-weekdays.cjs",
     "dev": "npm run prepare:ui && vite --host 0.0.0.0",
     "build": "npm run prepare:ui && vite build",
     "preview": "vite preview"
