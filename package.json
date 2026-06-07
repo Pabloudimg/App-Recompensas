@@ -1,10 +1,10 @@
 {
   "name": "app-recompensas",
   "private": true,
-  "version": "0.4.7",
+  "version": "0.4.8",
   "type": "module",
   "scripts": {
-    "prepare:ui": "node scripts/apply-family-ui.cjs && node scripts/apply-day-ui.cjs && node scripts/apply-emoji-picker.cjs && node scripts/apply-default-birthdates.cjs && node scripts/apply-cloudstore-fixes.cjs && node scripts/apply-invite-inbox.cjs && node scripts/apply-activity-weekdays.cjs && node scripts/apply-submit-feedback.cjs && node scripts/apply-desktop-responsive.cjs && node scripts/apply-splash-loading.cjs && node scripts/apply-desktop-overflow-fixes.cjs && node scripts/apply-collapsible-register-forms.cjs && node scripts/apply-activity-create-form-fix.cjs && node scripts/apply-activity-create-days-fix.cjs",
+    "prepare:ui": "node scripts/apply-family-ui.cjs && node scripts/apply-day-ui.cjs && node scripts/apply-emoji-picker.cjs && node scripts/apply-default-birthdates.cjs && node scripts/apply-cloudstore-fixes.cjs && node scripts/apply-invite-inbox.cjs && node scripts/apply-activity-weekdays.cjs && node scripts/apply-submit-feedback.cjs && node scripts/apply-desktop-responsive.cjs && node scripts/apply-splash-loading.cjs && node scripts/apply-desktop-overflow-fixes.cjs && node scripts/apply-collapsible-register-forms.cjs && node scripts/apply-activity-create-form-fix.cjs && node scripts/apply-activity-create-days-fix.cjs && node scripts/apply-activity-create-dom-visible.cjs",
     "dev": "npm run prepare:ui && vite --host 0.0.0.0",
     "build": "npm run prepare:ui && vite build",
     "preview": "vite preview"
