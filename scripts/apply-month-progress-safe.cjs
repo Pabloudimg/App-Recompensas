@@ -57,18 +57,20 @@ function getRewardRedemptionItemsForDate({ date, selectedChildIds, rewardRedempt
 function capitalizeFirst(value) { const text = String(value ?? ''); return text ? text.charAt(0).toUpperCase() + text.slice(1) : text }
 `
 
-// Remove o botão Mês onde estiver para garantir reposicionamento correto
+// Remove o botão Mês onde estiver (permite reposicionamento idempotente)
 if (main.includes("setActiveTab('month')")) {
   main = main.replace(/[ \t]*<button[^\n]*setActiveTab\('month'\)[^\n]*>Mês<\/button>\n/, '')
   changedMain = true
 }
 
-// Insere sempre após o botão Semana (entre Semana e o próximo botão)
-const insertedAfterWeek = replaceFirst(
-  /(<button[^>]*setActiveTab\('week'\)[\s\S]*?>Semana<\/button>\s*)/,
-  '$1' + monthButton
-)
-if (!insertedAfterWeek) {
+// Insere logo após o botão Semana usando busca literal
+// (regex [^>]* quebrava no "=>" do onClick)
+const SEMANA_ANCHOR = "setActiveTab('week')}>Semana</button>"
+if (main.includes(SEMANA_ANCHOR)) {
+  const idx = main.indexOf(SEMANA_ANCHOR) + SEMANA_ANCHOR.length
+  main = main.slice(0, idx) + '\n' + monthButton.trimEnd() + main.slice(idx)
+  changedMain = true
+} else {
   const insertedBeforeNavEnd = insertBeforeText('</nav>', monthButton)
   if (!insertedBeforeNavEnd) console.warn('apply-month-progress-safe: tabbar not found; month button skipped')
 }
