@@ -57,15 +57,20 @@ function getRewardRedemptionItemsForDate({ date, selectedChildIds, rewardRedempt
 function capitalizeFirst(value) { const text = String(value ?? ''); return text ? text.charAt(0).toUpperCase() + text.slice(1) : text }
 `
 
-if (!main.includes("setActiveTab('month')")) {
-  const insertedAfterWeek = replaceFirst(
-    /(<button[^>]*setActiveTab\('week'\)[\s\S]*?>Semana<\/button>\s*)/,
-    '$1' + monthButton
-  )
-  if (!insertedAfterWeek) {
-    const insertedBeforeNavEnd = insertBeforeText('</nav>', monthButton)
-    if (!insertedBeforeNavEnd) console.warn('apply-month-progress-safe: tabbar not found; month button skipped')
-  }
+// Remove o botão Mês onde estiver para garantir reposicionamento correto
+if (main.includes("setActiveTab('month')")) {
+  main = main.replace(/[ \t]*<button[^\n]*setActiveTab\('month'\)[^\n]*>Mês<\/button>\n/, '')
+  changedMain = true
+}
+
+// Insere sempre após o botão Semana (entre Semana e o próximo botão)
+const insertedAfterWeek = replaceFirst(
+  /(<button[^>]*setActiveTab\('week'\)[\s\S]*?>Semana<\/button>\s*)/,
+  '$1' + monthButton
+)
+if (!insertedAfterWeek) {
+  const insertedBeforeNavEnd = insertBeforeText('</nav>', monthButton)
+  if (!insertedBeforeNavEnd) console.warn('apply-month-progress-safe: tabbar not found; month button skipped')
 }
 
 if (!main.includes("activeTab === 'month' && <MonthPanel")) {
